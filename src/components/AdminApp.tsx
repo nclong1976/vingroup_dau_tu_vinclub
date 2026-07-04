@@ -348,7 +348,7 @@ function ProjectsAdmin() {
   };
 
   const handleSeedData = async () => {
-    if (confirm("Hệ thống sẽ khởi tạo toàn bộ 48 dự án đặc quyền đại diện cho Hệ sinh thái VinClub lên quả cầu 3D. Bạn có muốn tiếp tục?")) {
+    if (confirm("Hệ thống sẽ đồng bộ toàn bộ 48 dự án từ quả cầu 3D sang mục quản lý. Các dự án chưa có sẽ được bổ sung tự động. Bạn có muốn tiếp tục?")) {
       setIsSaving(true);
       try {
         const getCategoryOfLocation = (name: string): string => {
@@ -493,49 +493,53 @@ function ProjectsAdmin() {
           "Quỹ Vì Tương Lai Xanh": { lat: 21.0285, lng: 105.8542 }
         };
 
-        const seedProjects = LOCATIONS.map((name, idx) => {
-          const category = getCategoryOfLocation(name);
-          const tab = getTabOfLocation(name);
-          const interestRate = getInterestRateOfLocation(name);
-          const duration = getDurationOfLocation(name);
-          const minInvestment = getMinInvestmentOfLocation(name);
-          const scale = getScaleOfLocation(name);
-          const progress = 70 + (idx * 7) % 28;
-          const imageUrl = getUnsplashIdOfLocation(name);
-          const customId = `VNC-${idx + 1 < 10 ? '0' : ''}${idx + 1}`;
-          
-          const baseProj: any = {
-            customId,
-            name,
-            category,
-            tab,
-            interestRate,
-            duration,
-            minInvestment,
-            scale,
-            progress,
-            status: "active",
-            imageUrl
-          };
-          
-          if (SPECIFIC_COORDS[name]) {
-            baseProj.lat = SPECIFIC_COORDS[name].lat;
-            baseProj.lng = SPECIFIC_COORDS[name].lng;
+        const snapshot = await getDocs(collection(db, 'projects'));
+        const existingNames = new Set(snapshot.docs.map(doc => doc.data().name));
+        
+        let count = 0;
+        for (let idx = 0; idx < LOCATIONS.length; idx++) {
+          const name = LOCATIONS[idx];
+          if (!existingNames.has(name)) {
+            const category = getCategoryOfLocation(name);
+            const tab = getTabOfLocation(name);
+            const interestRate = getInterestRateOfLocation(name);
+            const duration = getDurationOfLocation(name);
+            const minInvestment = getMinInvestmentOfLocation(name);
+            const scale = getScaleOfLocation(name);
+            const progress = 70 + (idx * 7) % 28;
+            const imageUrl = getUnsplashIdOfLocation(name);
+            const customId = `VNC-${idx + 1 < 10 ? '0' : ''}${idx + 1}`;
+            
+            const baseProj: any = {
+              customId,
+              name,
+              category,
+              tab,
+              interestRate,
+              duration,
+              minInvestment,
+              scale,
+              progress,
+              status: "active",
+              imageUrl
+            };
+            
+            if (SPECIFIC_COORDS[name]) {
+              baseProj.lat = SPECIFIC_COORDS[name].lat;
+              baseProj.lng = SPECIFIC_COORDS[name].lng;
+            }
+            
+            await addDoc(collection(db, 'projects'), {
+              ...baseProj,
+              createdAt: new Date().toISOString()
+            });
+            count++;
           }
-          
-          return baseProj;
-        });
-
-        for (const p of seedProjects) {
-          await addDoc(collection(db, 'projects'), {
-            ...p,
-            createdAt: new Date()
-          });
         }
-        alert("Khởi tạo thành công toàn bộ 48 dự án Hệ sinh thái VinClub!");
+        alert(`Đồng bộ thành công! Đã thêm mới ${count} dự án còn thiếu vào mục quản lý.`);
       } catch (err) {
         console.error(err);
-        alert("Có lỗi xảy ra khi tạo dữ liệu.");
+        alert("Có lỗi xảy ra khi đồng bộ dữ liệu.");
       } finally {
         setIsSaving(false);
       }
@@ -650,14 +654,13 @@ function ProjectsAdmin() {
           </p>
         </div>
         <div className="flex gap-3 mt-4 md:mt-0">
-          {projects.length === 0 && (
-            <button 
-              onClick={handleSeedData}
-              className="px-4 py-2 text-xs font-bold text-[#e1b777] border border-[#e1b777]/30 hover:bg-[#e1b777]/10 rounded-xl transition-all cursor-pointer"
-            >
-              ✨ Khởi tạo 3 Dự án mẫu
-            </button>
-          )}
+          <button 
+            onClick={handleSeedData}
+            disabled={isSaving}
+            className="px-4 py-2 text-xs font-bold text-[#e1b777] border border-[#e1b777]/30 hover:bg-[#e1b777]/10 rounded-xl transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Đang đồng bộ...' : '⚡ Đồng bộ 48 Dự án Quả Cầu'}
+          </button>
           <button 
             onClick={handleOpenAddModal}
             className="bg-[#e1b777] text-neutral-950 px-5 py-2.5 rounded-xl font-bold hover:bg-[#c9a365] active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10"
