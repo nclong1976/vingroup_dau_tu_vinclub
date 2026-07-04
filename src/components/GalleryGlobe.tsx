@@ -1,5 +1,5 @@
 import { Suspense, useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GLOBE_RADIUS } from '../data';
 import Globe from './Globe';
@@ -25,6 +25,7 @@ function CameraController({ targetZ }: { targetZ: React.MutableRefObject<number>
 function SecretKey3D({ onClick }: { onClick: () => void }) {
   const meshRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const { camera } = useThree();
   
   useFrame((state) => {
     if (meshRef.current) {
@@ -39,7 +40,7 @@ function SecretKey3D({ onClick }: { onClick: () => void }) {
       ref={meshRef} 
       onClick={(e) => {
         e.stopPropagation();
-        const cameraZ = e.camera.position.z;
+        const cameraZ = camera.position.z;
         // If camera is still outside the globe sphere wall (radius 8), ignore click
         if (cameraZ > 12) {
           return;
