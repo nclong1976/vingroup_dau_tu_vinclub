@@ -5,6 +5,7 @@ import { GLOBE_RADIUS } from '../data';
 import Globe from './Globe';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { Key } from 'lucide-react';
 
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 const DEFAULT_CAMERA_Z = isMobile ? 36.0 : 19.8;
@@ -36,6 +37,12 @@ export default function GalleryGlobe({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [liveProjects, setLiveProjects] = useState<any[]>([]);
+
+  // Easter Egg States
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passcodeError, setPasscodeError] = useState('');
+  const [showPoemModal, setShowPoemModal] = useState(false);
 
   // 1. Listen to active projects real-time from Firestore
   useEffect(() => {
@@ -186,6 +193,18 @@ export default function GalleryGlobe({
     lastInteractionTime.current = Date.now();
   };
 
+  const handlePasscodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passcode.trim() === '1976') {
+      setShowKeyModal(false);
+      setShowPoemModal(true);
+      setPasscode('');
+      setPasscodeError('');
+    } else {
+      setPasscodeError('Mật mã không chính xác. Vui lòng thử lại!');
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -246,6 +265,127 @@ export default function GalleryGlobe({
       {liveProjects.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-8 h-8 border-2 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* Floating Key Easter Egg */}
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowKeyModal(true);
+        }}
+        className="absolute top-[126px] left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 cursor-pointer pointer-events-auto"
+        style={{
+          animation: 'floatKey 3s ease-in-out infinite',
+        }}
+      >
+        <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.7)] border border-amber-300 hover:scale-110 active:scale-95 transition-all duration-300">
+          <Key className="w-4.5 h-4.5 text-neutral-900" />
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes floatKey {
+          0% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
+          50% { transform: translate(-50%, -50%) translateY(-6px) rotate(8deg); }
+          100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
+        }
+      `}</style>
+
+      {/* Passcode Prompt Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="bg-neutral-900 border border-amber-500/20 w-full max-w-[320px] rounded-3xl p-6 shadow-2xl relative">
+            <h4 className="text-amber-500 text-sm font-black uppercase tracking-widest text-center mb-3">
+              Mật Mã Bảo Mật
+            </h4>
+            <p className="text-[11px] text-gray-400 text-center mb-4 leading-relaxed">
+              Vui lòng nhập mật mã gồm 4 chữ số để giải mã thông điệp ẩn giấu.
+            </p>
+            <form onSubmit={handlePasscodeSubmit} className="space-y-4">
+              <input 
+                type="text"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                maxLength={4}
+                autoFocus
+                value={passcode}
+                onChange={(e) => {
+                  setPasscode(e.target.value.replace(/[^0-9]/g, ''));
+                  setPasscodeError('');
+                }}
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl py-3 text-center text-2xl font-mono font-bold text-yellow-400 focus:outline-none focus:border-amber-500 tracking-[0.5em] pl-[0.5em]"
+                placeholder="••••"
+              />
+              {passcodeError && (
+                <p className="text-[10px] text-red-500 font-bold text-center">{passcodeError}</p>
+              )}
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => { setShowKeyModal(false); setPasscode(''); setPasscodeError(''); }}
+                  className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-bold text-xs rounded-xl transition-all"
+                >
+                  HỦY
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-neutral-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all"
+                >
+                  XÁC NHẬN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Poem Display Modal */}
+      {showPoemModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="bg-white border border-gray-100 w-full max-w-[360px] rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-[10px] text-amber-600 font-black uppercase tracking-widest">
+                Thông Điệp Tình Yêu
+              </span>
+              <button 
+                onClick={() => setShowPoemModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+            <div 
+              className="text-neutral-800 leading-relaxed text-sm md:text-[14.5px] italic text-center whitespace-pre-line border-y border-amber-100 py-6 my-4"
+              style={{ fontFamily: 'Arial, sans-serif' }}
+            >
+              {`Đem Hà Nội chở mùa qua ngõ vắng
+Gió bấc về cào rách vết thương xưa
+Phương Nam ấy nắng tràn lên mắt đắng
+Em có còn chờ những chuyến mưa thưa?
+
+Hai nửa đời hai đầu dài mệt mỏi
+Toan tính nhiều đâu dám ngỏ lời yêu
+Cái tuổi này nhớ nhung đầy gai góc
+Nuốt nghẹn lòng trong mỗi bóng hoàng hôn.
+
+Ta cách nhau cả chiều dài đất nước
+Cứ lặng im như sỏi đá chai sần
+Mà bão nổi phía bên trong lồng ngực
+Nhớ một người... đau thấu đến tận xương.
+
+`}
+              <span className="block font-bold not-italic text-sm text-amber-700 mt-4 tracking-wider">
+                Chiến yêu Hương
+              </span>
+            </div>
+            <button 
+              onClick={() => setShowPoemModal(false)}
+              className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl tracking-widest transition-all"
+            >
+              ĐÓNG CỬA SỔ
+            </button>
+          </div>
         </div>
       )}
     </div>
