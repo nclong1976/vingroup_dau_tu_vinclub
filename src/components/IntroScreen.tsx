@@ -328,7 +328,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         contact: finalContact,
         photoUrl: url,
         points: 0,
-        rank: "Member",
+        balance: 0,
+        rank: "THÀNH VIÊN / MEMBER",
         memberId: "VNC-" + Math.floor(100000 + Math.random() * 900000),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -380,9 +381,10 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         fullName: finalName,
         contact: finalContact,
         photoUrl: url,
-        points: 88800,
-        rank: "KIM CƯƠNG / DIAMOND",
-        memberId: "VNC-888-999",
+        points: 0,
+        balance: 0,
+        rank: "THÀNH VIÊN / MEMBER",
+        memberId: "VNC-" + Math.floor(100000 + Math.random() * 900000),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
