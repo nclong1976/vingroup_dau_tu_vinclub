@@ -12,9 +12,10 @@ interface QuickMenuGridProps {
   onUpdatePoints: (newPoints: number) => void;
   userName: string;
   onInvestClick?: () => void;
+  userRank?: string;
 }
 
-export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInvestClick }: QuickMenuGridProps) {
+export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInvestClick, userRank }: QuickMenuGridProps) {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // 1. Consultation Form States
@@ -74,6 +75,20 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
 
   // Spin Lucky Wheel handler
   const handleSpinWheel = () => {
+    const normalizedRank = (userRank || "").toUpperCase();
+    const isGoldOrHigher = 
+      normalizedRank.includes("GOLD") || 
+      normalizedRank.includes("VÀNG") || 
+      normalizedRank.includes("PLATINUM") || 
+      normalizedRank.includes("BẠCH KIM") || 
+      normalizedRank.includes("DIAMOND") || 
+      normalizedRank.includes("KIM CƯƠNG");
+      
+    if (!isGoldOrHigher) {
+      alert("Đặc quyền Vòng quay may mắn chỉ dành cho Hội viên hạng VÀNG / GOLD trở lên!");
+      return;
+    }
+
     if (isSpinning) return;
     setIsSpinning(true);
     setSpinResult(null);

@@ -150,6 +150,25 @@ export default function App() {
   const [lockVerticalMotion, setLockVerticalMotion] = useState<boolean>(true);
   const [broadcast, setBroadcast] = useState<string>('');
   const seedingInProgress = useRef(false);
+  const [realTransactions, setRealTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!userId) {
+      setRealTransactions([]);
+      return;
+    }
+    const txQuery = query(collection(db, 'transactions'), where('userId', '==', userId));
+    const unsub = onSnapshot(txQuery, (snap) => {
+      const txs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      txs.sort((a: any, b: any) => {
+        const dateA = new Date(a.date || a.createdAt || 0).getTime();
+        const dateB = new Date(b.date || b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+      setRealTransactions(txs);
+    }, (err) => console.error("Error listening to transactions:", err));
+    return unsub;
+  }, [userId]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'projects'), async (snap) => {
@@ -375,7 +394,22 @@ export default function App() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'news'), (snap) => {
-      const news = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const parseDateStr = (dateStr: string) => {
+        if (!dateStr) return 0;
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const d = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const y = parseInt(parts[2], 10);
+          const parsedDate = new Date(y, m, d);
+          return isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime();
+        }
+        const parsed = Date.parse(dateStr);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      const news = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+        .sort((a: any, b: any) => parseDateStr(b.date) - parseDateStr(a.date));
       
       if (news.length > 0) {
         setNewsList(news.map(n => ({
@@ -951,6 +985,7 @@ export default function App() {
                     points={points} 
                     onUpdatePoints={handleUpdatePoints} 
                     userName={userName}
+                    userRank={rank}
                     onInvestClick={() => setShowDepositModal(true)}
                   />
                 </motion.div>
@@ -1140,41 +1175,60 @@ export default function App() {
 
                     {/* Scrollable list */}
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-10 max-h-[380px]">
-                      {[
-                        { id: "TX-901", title: "Đầu tư Quỹ tăng trưởng Vingroup (VGF)", type: 'minus', points: 10000, date: "02/07/2026", status: "Hoàn thành" },
-                        { id: "TX-872", title: "Vòng quay may mắn VinClub", type: 'plus', points: 2500, date: "29/06/2026", status: "Hoàn thành" },
-                        { id: "TX-843", title: "Đặc quyền phòng chờ Thương gia Sân bay", type: 'minus', points: 5000, date: "28/06/2026", status: "Hoàn thành" },
-                        { id: "TX-721", title: "Thưởng tích lũy Sinh nhật Thượng khách", type: 'plus', points: 20000, date: "15/06/2026", status: "Hoàn thành" },
-                        { id: "TX-612", title: "Đặt phòng nghỉ dưỡng Vinpearl Resort & Spa", type: 'minus', points: 25000, date: "10/06/2026", status: "Hoàn thành" },
-                        { id: "TX-502", title: "Thanh toán dịch vụ bảo dưỡng VinFast VF9", type: 'minus', points: 8000, date: "02/06/2026", status: "Hoàn thành" },
-                        { id: "TX-401", title: "Nạp điểm VinPoints đặc quyền VinClub", type: 'plus', points: 50000, date: "25/05/2026", status: "Hoàn thành" }
-                      ]
-                      .filter(tx => historyFilter === 'all' || tx.type === historyFilter)
-                      .map((tx) => (
-                        <div key={tx.id} className="bg-neutral-950/70 border border-white/5 rounded-2xl p-3 flex justify-between items-center hover:border-amber-500/15 transition-all">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={`p-2 rounded-xl shrink-0 ${tx.type === 'plus' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                              {tx.type === 'plus' ? <ArrowDownLeft className="w-4 h-4 shrink-0" /> : <ArrowUpRight className="w-4 h-4 shrink-0" />}
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-[10px] font-bold text-stone-200 truncate pr-1">{tx.title}</h4>
-                              <div className="flex items-center gap-1.5 mt-0.5 text-[8.5px] font-mono text-gray-500">
-                                <span>{tx.date}</span>
-                                <span>•</span>
-                                <span>{tx.id}</span>
+                      {realTransactions
+                        .filter(tx => {
+                          const t = (tx.type === 'deposit' || tx.type === 'plus') ? 'plus' : 'minus';
+                          return historyFilter === 'all' || t === historyFilter;
+                        })
+                        .map((tx) => {
+                          const isPlus = tx.type === 'deposit' || tx.type === 'plus';
+                          const displayPoints = tx.amount || tx.points || 0;
+                          const dateStr = tx.date 
+                            ? (tx.date.includes('-') ? new Date(tx.date).toLocaleDateString('vi-VN') : tx.date)
+                            : 'N/A';
+                          const displayStatus = tx.status === 'completed' || tx.status === 'success' || tx.status === 'Thành công'
+                            ? 'Thành công'
+                            : tx.status === 'pending' || tx.status === 'Đang chờ' || tx.status === 'Đang xử lý'
+                              ? 'Chờ duyệt'
+                              : 'Từ chối';
+                          
+                          return (
+                            <div key={tx.id} className="bg-neutral-950/70 border border-white/5 rounded-2xl p-3 flex justify-between items-center hover:border-amber-500/15 transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`p-2 rounded-xl shrink-0 ${isPlus ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                  {isPlus ? <ArrowDownLeft className="w-4 h-4 shrink-0" /> : <ArrowUpRight className="w-4 h-4 shrink-0" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-[10px] font-bold text-stone-200 truncate pr-1">{tx.title || tx.description || "Giao dịch"}</h4>
+                                  <div className="flex items-center gap-1.5 mt-0.5 text-[8.5px] font-mono text-gray-500">
+                                    <span>{dateStr}</span>
+                                    <span>•</span>
+                                    <span className="truncate max-w-[80px]">{tx.id}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <span className={`text-[11px] font-black font-mono tracking-wide block ${isPlus ? 'text-emerald-400' : 'text-amber-500'}`}>
+                                  {isPlus ? '+' : '-'}{displayPoints.toLocaleString()} VND
+                                </span>
+                                <span className={`text-[7.5px] px-1.5 py-0.5 rounded font-extrabold tracking-wide uppercase font-mono mt-0.5 inline-block ${
+                                  displayStatus === 'Thành công'
+                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                    : displayStatus === 'Chờ duyệt'
+                                      ? 'bg-amber-500/10 text-amber-400 animate-pulse'
+                                      : 'bg-rose-500/10 text-rose-400'
+                                }`}>
+                                  {displayStatus}
+                                </span>
                               </div>
                             </div>
-                          </div>
-                          <div className="text-right shrink-0 ml-2">
-                            <span className={`text-[11px] font-black font-mono tracking-wide block ${tx.type === 'plus' ? 'text-emerald-400' : 'text-amber-500'}`}>
-                              {tx.type === 'plus' ? '+' : '-'}{tx.points.toLocaleString()} VND
-                            </span>
-                            <span className="text-[7.5px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-extrabold tracking-wide uppercase font-mono mt-0.5 inline-block">
-                              {tx.status}
-                            </span>
-                          </div>
+                          );
+                        })}
+                      {realTransactions.length === 0 && (
+                        <div className="text-center py-12 text-neutral-500 text-xs">
+                          Chưa có lịch sử giao dịch.
                         </div>
-                      ))}
+                      )}
                     </div>
                   </motion.div>
                 </motion.div>

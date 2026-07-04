@@ -2111,7 +2111,8 @@ function NewsAdmin() {
       content: contentHtml, 
       img: imageUrl,
       tag: "TIN TỨC",
-      date: formattedDate 
+      date: formattedDate,
+      isFeatured: true
     });
     setTitle('');
     setContentHtml('');
