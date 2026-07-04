@@ -24,65 +24,6 @@ function CameraController({ targetZ }: { targetZ: React.MutableRefObject<number>
   return null;
 }
 
-function SecretKey3D({ onClick }: { onClick: () => void }) {
-  const meshRef = useRef<THREE.Group>(null);
-  const [hovered, setHovered] = useState(false);
-  const { camera } = useThree();
-  
-  useFrame((state) => {
-    if (meshRef.current) {
-      // Gentle spin and float animation in 3D space
-      meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.8;
-      meshRef.current.position.y = Math.sin(state.clock.getElapsedTime() * 1.5) * 0.08;
-    }
-  });
-
-  return (
-    <group 
-      ref={meshRef} 
-      onClick={(e) => {
-        e.stopPropagation();
-        const cameraZ = camera.position.z;
-        // If camera is still outside the globe sphere wall (radius 8), ignore click
-        if (cameraZ > 12) {
-          return;
-        }
-        onClick();
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        setHovered(false);
-      }}
-      scale={hovered ? 0.35 : 0.3}
-    >
-      {/* 3D Key Model using standard R3F primitives */}
-      {/* Head Ring */}
-      <mesh position={[0, 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.2, 0.05, 8, 24]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
-      </mesh>
-      {/* Key Shaft */}
-      <mesh position={[0, -0.15, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 0.5, 8]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
-      </mesh>
-      {/* Key Teeth */}
-      <mesh position={[0.08, -0.28, 0]}>
-        <boxGeometry args={[0.1, 0.04, 0.04]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
-      </mesh>
-      <mesh position={[0.06, -0.36, 0]}>
-        <boxGeometry args={[0.08, 0.04, 0.04]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
-      </mesh>
-    </group>
-  );
-}
-
 export default function GalleryGlobe({ 
   userPhoto, 
   projects: propProjects = [],
@@ -99,11 +40,6 @@ export default function GalleryGlobe({
   const containerRef = useRef<HTMLDivElement>(null);
   const [liveProjects, setLiveProjects] = useState<any[]>([]);
 
-  // Easter Egg States
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [passcode, setPasscode] = useState('');
-  const [passcodeError, setPasscodeError] = useState('');
-  const [showPoemModal, setShowPoemModal] = useState(false);
 
   // 1. Listen to active projects real-time from Firestore
   useEffect(() => {
@@ -254,17 +190,6 @@ export default function GalleryGlobe({
     lastInteractionTime.current = Date.now();
   };
 
-  const handlePasscodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode.trim() === '7981') {
-      setShowKeyModal(false);
-      setShowPoemModal(true);
-      setPasscode('');
-      setPasscodeError('');
-    } else {
-      setPasscodeError('Mật mã không chính xác. Vui lòng thử lại!');
-    }
-  };
 
   return (
     <div 
@@ -299,8 +224,7 @@ export default function GalleryGlobe({
               onHover={(info) => setTooltipInfo(parseTooltip(info))}
               onHoverOut={() => setTooltipInfo(null)}
             />
-            {/* Secret 3D Key at the center of the globe */}
-            <SecretKey3D onClick={() => setShowKeyModal(true)} />
+
           </group>
         </Suspense>
       </CanvasAny>
@@ -328,104 +252,6 @@ export default function GalleryGlobe({
       {liveProjects.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-8 h-8 border-2 border-[#d4af37] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
-
-      {/* Passcode Prompt Modal */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-neutral-900 border border-amber-500/20 w-full max-w-[320px] rounded-3xl p-6 shadow-2xl relative">
-            <h4 className="text-amber-500 text-sm font-black uppercase tracking-widest text-center mb-3">
-              Mật Mã Bảo Mật
-            </h4>
-            <p className="text-[11px] text-gray-400 text-center mb-4 leading-relaxed">
-              Vui lòng nhập mật mã gồm 4 chữ số để giải mã thông điệp ẩn giấu. <br />
-              <span className="text-[9px] text-amber-500/60 font-bold">(Gợi ý: 7981)</span>
-            </p>
-            <form onSubmit={handlePasscodeSubmit} className="space-y-4">
-              <input 
-                type="text"
-                pattern="[0-9]*"
-                inputMode="numeric"
-                maxLength={4}
-                autoFocus
-                value={passcode}
-                onChange={(e) => {
-                  setPasscode(e.target.value.replace(/[^0-9]/g, ''));
-                  setPasscodeError('');
-                }}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl py-3 text-center text-2xl font-mono font-bold text-yellow-400 focus:outline-none focus:border-amber-500 tracking-[0.5em] pl-[0.5em]"
-                placeholder="••••"
-              />
-              {passcodeError && (
-                <p className="text-[10px] text-red-500 font-bold text-center">{passcodeError}</p>
-              )}
-              <div className="flex gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => { setShowKeyModal(false); setPasscode(''); setPasscodeError(''); }}
-                  className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-bold text-xs rounded-xl transition-all"
-                >
-                  HỦY
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-neutral-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all"
-                >
-                  XÁC NHẬN
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Poem Display Modal */}
-      {showPoemModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="bg-white border border-gray-100 w-full max-w-[360px] rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-[10px] text-amber-600 font-black uppercase tracking-widest">
-                Thông Điệp Tình Yêu
-              </span>
-              <button 
-                onClick={() => setShowPoemModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-            <div 
-              className="text-neutral-800 leading-relaxed text-sm md:text-[14.5px] italic text-center whitespace-pre-line border-y border-amber-100 py-6 my-4"
-              style={{ fontFamily: 'Arial, sans-serif' }}
-            >
-              {`Đem Hà Nội chở mùa qua ngõ vắng
-Gió bấc về cào rách vết thương xưa
-Phương Nam ấy nắng tràn lên mắt đắng
-Em có còn chờ những chuyến mưa thưa?
-
-Hai nửa đời hai đầu dài mệt mỏi
-Toan tính nhiều đâu dám ngỏ lời yêu
-Cái tuổi này nhớ nhung đầy gai góc
-Nuốt nghẹn lòng trong mỗi bóng hoàng hôn.
-
-Ta cách nhau cả chiều dài đất nước
-Cứ lặng im như sỏi đá chai sần
-Mà bão nổi phía bên trong lồng ngực
-Nhớ một người... đau thấu đến tận xương.
-
-`}
-              <span className="block font-bold not-italic text-sm text-amber-700 mt-4 tracking-wider">
-                Chiến yêu Hương
-              </span>
-            </div>
-            <button 
-              onClick={() => setShowPoemModal(false)}
-              className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl tracking-widest transition-all"
-            >
-              ĐÓNG CỬA SỔ
-            </button>
-          </div>
         </div>
       )}
     </div>

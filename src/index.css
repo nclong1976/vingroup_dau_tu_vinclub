@@ -30,6 +30,15 @@ html, body, #root {
   font-family: Calibri, "Segoe UI", sans-serif !important;
 }
 
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-subtle-float {
+  animation: subtle-float 3s ease-in-out infinite;
+}
+
 @keyframes subtle-pan {
   0% { transform: scale(1.02) translate(0%, 0%); }
   50% { transform: scale(1.08) translate(-1.5%, 1%); }
