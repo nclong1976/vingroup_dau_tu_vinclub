@@ -128,6 +128,7 @@ const getRelativeTime = (timestamp: number) => {
 import NewsSection from './components/NewsSection';
 import AllNewsPage from './components/AllNewsPage';
 import NewsDetailPage from './components/NewsDetailPage';
+import AllProjectsPage from './components/AllProjectsPage';
 
 const liveWithdrawals = [
   "Nguyễn Văn Bảo rút lãi suất thành công 250.000.000 VND",
@@ -158,7 +159,7 @@ export default function App() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'home' | 'vip' | 'profile' | 'support'>('home');
 
-  const [appView, setAppView] = useState<'main' | 'all-news'>('main');
+  const [appView, setAppView] = useState<'main' | 'all-news' | 'all-projects'>('main');
   const [selectedNews, setSelectedNews] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [lockVerticalMotion, setLockVerticalMotion] = useState<boolean>(true);
@@ -1008,6 +1009,33 @@ export default function App() {
                     onSelect={(img, loc, info, proj) => setSelectedCard({ image: img, location: loc, info: info, project: proj })} 
                     selectedCard={selectedCard}
                   />
+
+                  {/* FLOATING BUTTON: HẠNG MỤC ĐẦU TƯ (ANCHORED RIGHT EDGE) */}
+                  <button 
+                    onClick={() => setAppView('all-projects')}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-gradient-to-b from-[#1c1c1f]/95 to-[#0d0d0f]/95 backdrop-blur-xl border border-r-0 border-[#e1b777]/35 rounded-l-2xl py-4.5 px-2 flex flex-col items-center gap-2.5 shadow-[0_4px_25px_rgba(245,158,11,0.2)] active:scale-95 transition-all group cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/20 transition-all shrink-0">
+                      <Briefcase className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <div className="flex flex-col items-center text-[9px] font-black tracking-widest text-amber-400 gap-0.5 leading-none">
+                      <span>H</span>
+                      <span>Ạ</span>
+                      <span>N</span>
+                      <span>G</span>
+                      <span className="h-0.5"></span>
+                      <span>M</span>
+                      <span>Ụ</span>
+                      <span>C</span>
+                      <span className="h-1"></span>
+                      <span className="text-stone-300">Đ</span>
+                      <span className="text-stone-300">Ầ</span>
+                      <span className="text-stone-300">U</span>
+                      <span className="h-0.5"></span>
+                      <span className="text-stone-300">T</span>
+                      <span className="text-stone-300">Ư</span>
+                    </div>
+                  </button>
                 </motion.div>
 
                 {/* 3. QUICK MENU GRID */}
@@ -1381,6 +1409,41 @@ export default function App() {
             news={newsList}
             onBack={() => setAppView('main')}
             onNewsClick={(news) => setSelectedNews(news)}
+          />
+        )}
+
+        {appView === 'all-projects' && (
+          <AllProjectsPage 
+            projects={projects}
+            onBack={() => setAppView('main')}
+            onSelectProject={async (proj) => {
+              setAppView('main');
+              setIsSearchingSpinner(true);
+              try {
+                const res = await fetch('/api/location-info', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ location: proj.name })
+                });
+                const data = await res.json();
+                setSelectedCard({
+                  image: proj.imageUrl || "",
+                  location: proj.name,
+                  info: data.info || `Thông tin chi tiết về dự án đầu tư ${proj.name} thuộc hệ sinh thái Vingroup.`,
+                  project: proj
+                });
+              } catch (e) {
+                console.error("Error loading location info", e);
+                setSelectedCard({
+                  image: proj.imageUrl || "",
+                  location: proj.name,
+                  info: `Thông tin chi tiết về dự án đầu tư ${proj.name} thuộc hệ sinh thái Vingroup.`,
+                  project: proj
+                });
+              } finally {
+                setIsSearchingSpinner(false);
+              }
+            }}
           />
         )}
         
