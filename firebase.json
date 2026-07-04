@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "database": "ai-studio-vinclub-12943e0e-16ce-4bf9-8879-9eab8720dde7",
+    "rules": "firestore.rules"
+  }
+}

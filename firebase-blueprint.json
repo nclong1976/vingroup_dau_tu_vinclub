@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profile with name, avatar, points, balance and tier details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "contact": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "points": { "type": "number" },
+        "balance": { "type": "number" },
+        "rank": { "type": "string" },
+        "memberId": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "signature_content": { "type": "string" },
+        "idDocumentUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId"]
+    },
+    "transactions": {
+      "title": "Transaction",
+      "description": "Financial transactions for deposits and investments",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["plus", "minus", "investment", "deposit", "withdraw"] },
+        "paymentMethod": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "contractId": { "type": "string" },
+        "signature_content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "type"]
+    },
+    "projects": {
+      "title": "Project",
+      "description": "Investment project information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "news": {
+      "title": "News",
+      "description": "News articles",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content"]
+    },
+    "support_chat": {
+      "title": "Support Chat Message",
+      "description": "Real-time support chat messages",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "sender": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["text", "sender", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Collection storing personal user profiles and VIP attributes"
+    },
+    "/projects/{projectId}": {
+      "schema": "projects",
+      "description": "Investment projects"
+    },
+    "/news/{newsId}": {
+      "schema": "news",
+      "description": "News articles"
+    },
+    "/support_chat/{messageId}": {
+      "schema": "support_chat",
+      "description": "Chat messages"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "transactions",
+      "description": "Financial records"
+    }
+  }
+}
