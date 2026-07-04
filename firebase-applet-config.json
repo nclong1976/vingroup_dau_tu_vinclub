@@ -1,10 +1,10 @@
 {
-  "projectId": "test-proj-20260213-abc",
-  "appId": "1:168444683721:web:6af79c08bb570cdd14b418",
-  "apiKey": "AIzaSyCUYboGN1C8g1EywO_SeqUMboBfDZcuOTY",
-  "authDomain": "test-proj-20260213-abc.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-vinclub-12943e0e-16ce-4bf9-8879-9eab8720dde7",
-  "storageBucket": "test-proj-20260213-abc.firebasestorage.app",
-  "messagingSenderId": "168444683721",
-  "measurementId": ""
+  "apiKey": "AIzaSyDmCAwBvbmJzN5J3it5CQ6TW3vAMFV95Z0",
+  "authDomain": "wbd-a8d66.firebaseapp.com",
+  "projectId": "wbd-a8d66",
+  "storageBucket": "wbd-a8d66.firebasestorage.app",
+  "messagingSenderId": "46794003643",
+  "appId": "1:46794003643:web:2c5df27a69a8cd8164c59e",
+  "measurementId": "G-QD5HQDNYM7",
+  "firestoreDatabaseId": "(default)"
 }
