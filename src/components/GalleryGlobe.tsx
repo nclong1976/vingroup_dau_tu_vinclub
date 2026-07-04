@@ -278,7 +278,7 @@ export default function GalleryGlobe({
       {/* Background stays pure white */}
       <CanvasAny 
         camera={{ position: [0, 0, DEFAULT_CAMERA_Z], fov: 45, near: 0.1 }}
-        style={{ width: '378px', height: '392px', marginLeft: '1px', marginTop: '-70px' }}
+        style={{ width: '100%', height: '100%' }}
       >
         <CameraController targetZ={targetZ} />
         <ambientLight intensity={0.5} />

@@ -969,7 +969,7 @@ export default function App() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                   className="w-full h-[400px] shrink-0 relative mb-4"
-                  style={{ marginTop: '-70px' }}
+                  style={{ marginTop: '-10px' }}
                 >
                   <GalleryGlobe 
                     userPhoto={userPhoto} 
