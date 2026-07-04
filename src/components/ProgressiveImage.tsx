@@ -5,6 +5,7 @@ interface ProgressiveImageProps extends React.ImgHTMLAttributes<HTMLImageElement
   alt?: string;
   className?: string;
   imgClassName?: string;
+  style?: React.CSSProperties;
 }
 
 export default function ProgressiveImage({ src, alt = '', className = '', imgClassName = '', ...props }: ProgressiveImageProps) {

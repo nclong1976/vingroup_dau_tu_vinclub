@@ -1,4 +1,4 @@
-import { Suspense, useRef, useEffect, useState } from 'react';
+import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GLOBE_RADIUS } from '../data';
@@ -6,6 +6,8 @@ import Globe from './Globe';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Key } from 'lucide-react';
+
+const CanvasAny = Canvas as any;
 
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 const DEFAULT_CAMERA_Z = isMobile ? 36.0 : 19.8;
@@ -274,7 +276,7 @@ export default function GalleryGlobe({
       onPointerLeave={handlePointerUp}
     >
       {/* Background stays pure white */}
-      <Canvas 
+      <CanvasAny 
         camera={{ position: [0, 0, DEFAULT_CAMERA_Z], fov: 45, near: 0.1 }}
         style={{ width: '378px', height: '392px', marginLeft: '1px', marginTop: '-70px' }}
       >
@@ -301,7 +303,7 @@ export default function GalleryGlobe({
             <SecretKey3D onClick={() => setShowKeyModal(true)} />
           </group>
         </Suspense>
-      </Canvas>
+      </CanvasAny>
 
       {/* Tooltip Overlay */}
       {tooltipInfo && (

@@ -201,6 +201,7 @@ const FALLBACK_DESCRIPTIONS: Record<string, string> = {
 };
 
 interface CardProps {
+  key?: any;
   index: number;
   position: THREE.Vector3;
   scale?: number;

@@ -1,5 +1,5 @@
 import ProgressiveImage from './ProgressiveImage';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { signOut, signInAnonymously } from 'firebase/auth';
 import { doc, updateDoc, setDoc, onSnapshot, collection, addDoc, getDoc, query, where, getDocs } from 'firebase/firestore';

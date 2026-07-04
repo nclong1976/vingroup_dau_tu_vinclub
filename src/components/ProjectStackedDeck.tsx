@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react';
 import { Edit, Lock, Unlock, Trash2, ImageIcon, Sparkles, RotateCcw } from 'lucide-react';
 
@@ -133,6 +133,7 @@ function ProjectCard({
   onDelete,
   onActivate
 }: { 
+  key?: any;
   project: Project; 
   index: number; 
   isTop: boolean;

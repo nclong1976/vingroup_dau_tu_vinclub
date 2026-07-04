@@ -1,5 +1,5 @@
 import ProgressiveImage from './ProgressiveImage';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Paperclip, File as FileIcon, X, ArrowLeft, Home, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../firebase';
@@ -15,6 +15,8 @@ interface ChatMessage {
   fileType?: string;
   fileName?: string;
   userEmail?: string;
+  userId?: string;
+  userName?: string;
 }
 
 interface SupportTabProps {

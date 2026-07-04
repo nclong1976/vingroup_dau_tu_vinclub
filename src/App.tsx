@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Compass, Briefcase, TrendingUp, ShieldCheck, Search, Bell, X, Sparkles, MapPin, CheckCircle, Clock, ArrowDownLeft, ArrowUpRight, HelpCircle, Megaphone } from 'lucide-react';
 import GalleryGlobe from './components/GalleryGlobe';
@@ -13,7 +13,7 @@ import { LOCATIONS } from './data';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc, collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, onSnapshot, addDoc, query, where } from 'firebase/firestore';
 import QuickMenuGrid from './components/QuickMenuGrid';
 import ContractSignModal from './components/ContractSignModal';
 import ProgressiveImage from './components/ProgressiveImage';

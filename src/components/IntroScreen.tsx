@@ -1,10 +1,10 @@
 import ProgressiveImage from './ProgressiveImage';
 import { Camera, Upload, ArrowRight, ArrowLeft, AlertCircle, Bell, RefreshCw, KeyRound, Check, HelpCircle } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch, addDoc } from 'firebase/firestore';
 declare global {
   interface Window {
     aistudio?: {

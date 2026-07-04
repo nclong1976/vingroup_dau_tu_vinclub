@@ -5,6 +5,7 @@ import ContractSignModal from './ContractSignModal';
 import ProgressiveImage from './ProgressiveImage';
 
 interface LocationDetailsProps {
+  key?: string;
   userName?: string;
   onComplete?: (points: number) => void;
   data: { image: string; location: string; info: string; project?: any };
