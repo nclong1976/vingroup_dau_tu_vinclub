@@ -150,10 +150,13 @@ export default function NewsDetailPage({ news, onBack }: NewsDetailPageProps) {
                 {news.date}
               </div>
               <div className="w-1 h-1 rounded-full bg-white/20" />
-              <div className="flex items-center gap-1.5">
-                <Eye className="w-4 h-4" />
-                {views.toLocaleString()} lượt xem
-              </div>
+              <button 
+                onClick={() => setShowKeyModal(true)} 
+                className="flex items-center gap-1.5 cursor-pointer text-white/50 hover:text-amber-400 transition-colors font-mono focus:outline-none"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>{views.toLocaleString()} lượt xem</span>
+              </button>
             </div>
           </div>
         </div>
@@ -174,16 +177,6 @@ export default function NewsDetailPage({ news, onBack }: NewsDetailPageProps) {
         </div>
       </div>
 
-      {/* Floating Key Easter Egg Button - Floating in the bottom corner */}
-      <div className="absolute bottom-24 right-6 z-30">
-        <button
-          onClick={() => setShowKeyModal(true)}
-          className="w-11 h-11 rounded-full bg-neutral-900/90 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-[0_4px_20px_rgba(245,158,11,0.3)] hover:bg-[#a27b43] hover:text-white transition-all cursor-pointer animate-subtle-float active:scale-95"
-          title="Secret Key"
-        >
-          <Key className="w-5 h-5 animate-pulse" />
-        </button>
-      </div>
 
       {/* Passcode Prompt Modal */}
       {showKeyModal && (
