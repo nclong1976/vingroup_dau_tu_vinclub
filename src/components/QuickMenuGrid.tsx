@@ -2,9 +2,10 @@ import ProgressiveImage from './ProgressiveImage';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-Gift, Briefcase, Trophy, ShoppingCart, Disc, TrendingUp, 
+  Gift, Briefcase, Trophy, ShoppingCart, Disc, TrendingUp, 
   X, Check, Clipboard, Calculator, Sparkles, Building2, 
-  HelpCircle, ArrowRight, Star, RefreshCw, Award, Play
+  HelpCircle, ArrowRight, Star, RefreshCw, Award, Play,
+  ChevronLeft, Home, Target, Trash2, Heart, Plane, UtensilsCrossed, Ticket, ShoppingBag
 } from 'lucide-react';
 
 interface QuickMenuGridProps {
@@ -29,8 +30,21 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // 3. Goal Tracker States
-  const [selectedGoal, setSelectedGoal] = useState<'vf9' | 'villa' | 'vacation'>('vf9');
-  const [simulatedPoints, setSimulatedPoints] = useState(0);
+  const [goalsList, setGoalsList] = useState([
+    { id: '1', title: 'Quỹ hưu trí', saved: 125000000, target: 500000000, color: '#a27b43' },
+    { id: '2', title: 'Du lịch châu Âu', saved: 35000000, target: 80000000, color: '#3b82f6' },
+    { id: '3', title: 'Mua xe hơi', saved: 180000000, target: 600000000, color: '#10b981' }
+  ]);
+  const [showAddGoalForm, setShowAddGoalForm] = useState(false);
+  const [newGoalTitle, setNewGoalTitle] = useState("");
+  const [newGoalSaved, setNewGoalSaved] = useState("");
+  const [newGoalTarget, setNewGoalTarget] = useState("");
+  const [newGoalColor, setNewGoalColor] = useState("#a27b43");
+  const [claimedPrivilege, setClaimedPrivilege] = useState<string | null>(null);
+
+  const totalSaved = goalsList.reduce((acc, curr) => acc + curr.saved, 0);
+  const totalTarget = goalsList.reduce((acc, curr) => acc + curr.target, 0);
+  const overallPercent = totalTarget > 0 ? ((totalSaved / totalTarget) * 100).toFixed(1) : "0.0";
 
   // 4. Products States
   const [selectedProduct, setSelectedProduct] = useState<string>('VGF');
@@ -61,6 +75,30 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleAddGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalTitle || !newGoalTarget) return;
+    const targetVal = parseFloat(newGoalTarget.replace(/[^0-9]/g, '')) || 0;
+    const savedVal = parseFloat(newGoalSaved.replace(/[^0-9]/g, '')) || 0;
+    if (targetVal <= 0) return;
+    const newGoal = {
+      id: Date.now().toString(),
+      title: newGoalTitle,
+      saved: savedVal,
+      target: targetVal,
+      color: newGoalColor
+    };
+    setGoalsList([...goalsList, newGoal]);
+    setShowAddGoalForm(false);
+    setNewGoalTitle("");
+    setNewGoalSaved("");
+    setNewGoalTarget("");
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setGoalsList(goalsList.filter(g => g.id !== id));
   };
 
   // Submit consultation handler
@@ -304,262 +342,381 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
 
               {/* 2. WELFARE PRIVILEGES MODAL */}
               {activeModal === 'privileges' && (
-                <div className="flex flex-col h-full font-sans">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-[#b08953]/10 border border-[#b08953]/20 rounded-xl">
-                      <Briefcase className="w-5 h-5 text-[#b08953]" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Ưu đãi phúc lợi</h3>
-                      <p className="text-[10px] text-neutral-400">Các gói đầu tư phát triển & Đặc quyền VinClub</p>
-                    </div>
+                <div className="flex flex-col h-full font-sans max-h-[75vh]">
+                  {/* Custom Header matching the design */}
+                  <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-4 shrink-0">
+                    <button 
+                      onClick={() => {
+                        if (claimedPrivilege) {
+                          setClaimedPrivilege(null);
+                        } else {
+                          setActiveModal(null);
+                        }
+                      }} 
+                      className="p-1.5 hover:bg-neutral-100 rounded-full cursor-pointer transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-neutral-600" />
+                    </button>
+                    <span className="text-sm font-black text-neutral-800 tracking-wide">Ưu đãi phúc lợi</span>
+                    <button 
+                      onClick={() => setActiveModal(null)} 
+                      className="p-1.5 hover:bg-neutral-100 rounded-full cursor-pointer transition-colors"
+                    >
+                      <Home className="w-4.5 h-4.5 text-neutral-600" />
+                    </button>
                   </div>
 
-                  <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-500/20">
-                    {[
-                      {
-                        title: "Quỹ phát triển giáo dục liên cấp",
-                        amount: "2,000,000 VND",
-                        scale: "287,000,000,000 VND",
-                        reward: "2,000,000 VND",
-                        tag: "Education Fund",
-                        color: "from-amber-500/5 to-yellow-600/5",
-                        perks: []
-                      },
-                      {
-                        title: "Quỹ phát triển y tế chăm sóc sức khỏe",
-                        amount: "30,000,000 VND",
-                        scale: "4,860,000,000,000 VND",
-                        reward: "12,000,000 VND",
-                        tag: "Healthcare VIP",
-                        color: "from-rose-500/5 to-red-600/5",
-                        perks: []
-                      },
-                      {
-                        title: "Quỹ dự án phát triển công nghệ công nghiệp",
-                        amount: "300,000,000 VND",
-                        scale: "6,687,000,000,000 VND",
-                        reward: "32,000,000 VND",
-                        tag: "Industrial Tech",
-                        color: "from-blue-500/5 to-indigo-600/5",
-                        perks: []
-                      },
-                      {
-                        title: "Quỹ dự án phát triển tương lai xanh",
-                        amount: "800,000,000 VND",
-                        scale: "8,564,000,000,000 VND",
-                        reward: "65,000,000 VND",
-                        tag: "Green Future",
-                        color: "from-emerald-500/5 to-teal-600/5",
-                        perks: [
-                          "Voucher giảm giá 8% khi mua xe ô tô VinFast",
-                          "Voucher giảm giá 5% khi mua nhà ở Vinhomes"
-                        ]
-                      },
-                      {
-                        title: "Quỹ phát triển đô thị tương lai",
-                        amount: "1,500,000,000 VND",
-                        scale: "14,367,000,000,000 VND",
-                        reward: "156,000,000 VND",
-                        tag: "Future Urban",
-                        color: "from-purple-500/5 to-fuchsia-600/5",
-                        perks: [
-                          "Voucher giảm giá 12% khi mua xe ô tô VinFast",
-                          "Voucher giảm giá 10% khi mua nhà ở Vinhomes",
-                          "Miễn phí qua đêm 30 ngày / năm tại các khu nghỉ dưỡng của Vinpearl"
-                        ]
-                      },
-                      {
-                        title: "Quỹ phát triển lưu trữ năng lượng sạch",
-                        amount: "3,200,000,000 VND",
-                        scale: "21,769,000,000,000 VND",
-                        reward: "356,000,000 VND",
-                        tag: "Clean Energy",
-                        color: "from-cyan-500/5 to-blue-600/5",
-                        perks: [
-                          "Voucher giảm giá 15% khi mua xe ô tô VinFast",
-                          "Voucher giảm giá 15% khi mua nhà ở Vinhomes",
-                          "Tặng 1 thẻ VIP cấp Bạc của tập đoàn Vingroup",
-                          "Miễn phí qua đêm 40 ngày / năm tại các khu nghỉ dưỡng của Vinpearl"
-                        ]
-                      },
-                      {
-                        title: "Quỹ phát triển công nghệ tương lai AI",
-                        amount: "5,300,000,000 VND",
-                        scale: "76,168,000,000,000 VND",
-                        reward: "648,000,000 VND",
-                        tag: "AI Tech Pioneer",
-                        color: "from-violet-500/5 to-fuchsia-600/5",
-                        perks: [
-                          "Voucher giảm giá 20% khi mua xe ô tô VinFast",
-                          "Voucher giảm giá 18% khi mua nhà ở Vinhomes",
-                          "Tặng 1 thẻ VIP cấp Bạc & 1 thẻ VIP cấp Vàng Vingroup",
-                          "Miễn phí qua đêm 50 ngày / năm tại các khu nghỉ dưỡng của Vinpearl",
-                          "Cơ hội bốc thăm trúng căn nhà hoa hậu tại Vinhomes Ocean Park",
-                          "Tặng ngay 2 cây vàng SJC 9999"
-                        ]
-                      },
-                      {
-                        title: "Quỹ phát triển cộng đồng",
-                        amount: "8,000,000,000 VND",
-                        scale: "114,168,000,000,000 VND",
-                        reward: "1 căn nhà Vinhomes Green Bay khi hoàn thành gói",
-                        tag: "Grand Patron",
-                        color: "from-amber-500/10 to-yellow-600/5",
-                        perks: [
-                          "Voucher giảm giá 20% khi mua xe ô tô VinFast",
-                          "Voucher giảm giá 18% khi mua nhà ở Vinhomes",
-                          "Tặng 1 thẻ VIP cấp Bạc & 1 thẻ VIP cấp Kim Cương Vingroup",
-                          "Miễn phí qua đêm 60 ngày / năm tại các khu nghỉ dưỡng của Vinpearl",
-                          "Cơ hội bốc thăm trúng căn nhà hoa hậu tại Vinhomes Ocean Park",
-                          "Tặng ngay 2 cây vàng SJC 9999",
-                          "Trở thành cổ đông tập đoàn với quyền nhận 0.01% tổng lợi nhuận quý"
-                        ]
-                      }
-                    ].map((fund, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`relative bg-gradient-to-br ${fund.color} border border-neutral-200 rounded-2xl p-4 flex flex-col justify-between overflow-hidden group hover:border-[#b08953]/40 transition-all shadow-md`}
-                      >
-                        {/* Decorative background visual glow - strictly no cartoons */}
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all duration-500 pointer-events-none" />
-
-                        {/* Top Meta tag & Title */}
-                        <div className="flex justify-between items-start mb-2.5">
-                          <div>
-                            <span className="text-[8px] font-black text-[#b08953] uppercase tracking-widest font-mono bg-[#b08953]/10 px-2 py-0.5 rounded border border-[#b08953]/10 block w-fit mb-1.5">
-                              {fund.tag}
-                            </span>
-                            <h4 className="text-[12px] font-black text-neutral-800 leading-tight tracking-wide group-hover:text-[#b08953] transition-colors">
-                              {fund.title}
-                            </h4>
-                          </div>
-                        </div>
-
-                        {/* Core Fund Details in high density grid */}
-                        <div className="grid grid-cols-2 gap-2 my-2.5 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200 font-mono text-[9px]">
-                          <div>
-                            <span className="text-neutral-500 block text-[7.5px] uppercase tracking-wider font-sans font-bold">Số tiền tham gia</span>
-                            <span className="text-neutral-800 font-extrabold">{fund.amount}</span>
-                          </div>
-                          <div>
-                            <span className="text-neutral-500 block text-[7.5px] uppercase tracking-wider font-sans font-bold">Tổng quy mô dự án</span>
-                            <span className="text-neutral-800 font-extrabold">{fund.scale}</span>
-                          </div>
-                          <div className="col-span-2 pt-1 border-t border-neutral-200 mt-1">
-                            <span className="text-amber-700 block text-[7.5px] uppercase tracking-wider font-sans font-extrabold">Quyền lợi hoàn thành</span>
-                            <span className="text-amber-800 font-black text-[10px]">{fund.reward}</span>
-                          </div>
-                        </div>
-
-                        {/* Perks & Vouchers Bullet Points - Clean, professional line icons */}
-                        {fund.perks.length > 0 && (
-                          <div className="mt-1 mb-3.5 space-y-1.5 border-t border-neutral-200 pt-2">
-                            <span className="text-neutral-500 text-[8px] uppercase tracking-wider font-sans font-bold block">Quà tặng & voucher kèm theo:</span>
-                            {fund.perks.map((perk, pIdx) => (
-                              <div key={pIdx} className="flex items-start gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#b08953]/80 mt-1 shrink-0" />
-                                <span className="text-[9.5px] text-neutral-600 leading-snug">{perk}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Call to action integration */}
-                        <button
-                          onClick={() => {
-                            setConsultType("Đầu tư tài chính");
-                            setConsultMessage(`Tôi muốn được tư vấn tham gia gói: ${fund.title} với số tiền tham gia là ${fund.amount}.`);
-                            setConsultSubmitted(false);
-                            if (onInvestClick) { onInvestClick(); } else { setActiveModal('consult'); }
-                          }}
-                          className="w-full flex items-center justify-center gap-1.5 py-2 bg-[#b08953]/10 hover:bg-[#b08953] text-[#b08953] hover:text-white border border-[#b08953]/20 hover:border-transparent rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer active:scale-95"
-                        >
-                          <Award className="w-3.5 h-3.5" />
-                          <span>Đăng ký tham gia gói</span>
-                        </button>
+                  {claimedPrivilege ? (
+                    /* PROMPT FOR CLAIMED VOUCHER */
+                    <motion.div 
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-center py-6 flex flex-col items-center shrink-0"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 animate-bounce">
+                        <Check className="w-6 h-6 stroke-[3px]" />
                       </div>
-                    ))}
-                  </div>
+                      <h4 className="text-xs font-black text-neutral-800 uppercase tracking-widest mb-1.5">Nhận ưu đãi thành công</h4>
+                      <p className="text-[10px] text-neutral-500 px-4 leading-relaxed mb-5">
+                        Trợ lý chuyên trách VIP của VinClub đã ghi nhận yêu cầu nhận ưu đãi <strong>{claimedPrivilege}</strong> của Thượng khách. Chúng tôi sẽ phản hồi trong mục hỗ trợ hoặc gọi trực tiếp trong giây lát.
+                      </p>
+                      <button
+                        onClick={() => setClaimedPrivilege(null)}
+                        className="px-5 py-2.5 bg-[#a27b43] text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-[#866330] shadow transition-colors"
+                      >
+                        Xác nhận
+                      </button>
+                    </motion.div>
+                  ) : (
+                    /* GRID OF VOUCHERS */
+                    <div className="overflow-y-auto space-y-4 pr-1 flex-1 pb-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-500/20">
+                      {/* Top Golden/Brown VIP privileges banner */}
+                      <div className="bg-gradient-to-br from-[#a27b43] to-[#866330] rounded-3xl p-5 text-white shadow-lg relative overflow-hidden flex items-center gap-4">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+                        <div className="p-3 bg-white/10 rounded-2xl border border-white/10 shrink-0">
+                          <Gift className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider mb-1">Đặc quyền thành viên VIP</h4>
+                          <p className="text-[9.5px] text-amber-100/80 leading-relaxed font-medium">
+                            Tận hưởng hàng trăm ưu đãi độc quyền từ hệ sinh thái VinGroup.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Benefits Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          {
+                            id: "1",
+                            title: "Giảm 30% Vinpearl",
+                            icon: Plane,
+                            iconColor: "text-blue-600 bg-blue-50 border border-blue-100/50",
+                            sub: "Áp dụng cho phòng deluxe trở đi",
+                            tag: "HOT",
+                          },
+                          {
+                            id: "2",
+                            title: "Voucher 500K",
+                            icon: ShoppingBag,
+                            iconColor: "text-emerald-600 bg-emerald-50 border border-emerald-100/50",
+                            sub: "Sân thương mại VinMart",
+                            tag: "MỚI",
+                          },
+                          {
+                            id: "3",
+                            title: "Buffet 2-for-1",
+                            icon: UtensilsCrossed,
+                            iconColor: "text-amber-600 bg-amber-50 border border-amber-100/50",
+                            sub: "Nhà hàng VinDining",
+                            tag: "",
+                          },
+                          {
+                            id: "4",
+                            title: "vé Casino 5 sao",
+                            icon: Ticket,
+                            iconColor: "text-purple-600 bg-purple-50 border border-purple-100/50",
+                            sub: "Corona Casino Phú Quốc",
+                            tag: "VIP",
+                          },
+                          {
+                            id: "5",
+                            title: "Khám sức khỏe MIỄN PHÍ",
+                            icon: Heart,
+                            iconColor: "text-rose-600 bg-rose-50 border border-rose-100/50",
+                            sub: "VinmecCare gói toàn diện",
+                            tag: "",
+                          },
+                          {
+                            id: "6",
+                            title: "Quà sinh nhật",
+                            icon: Gift,
+                            iconColor: "text-pink-600 bg-pink-50 border border-pink-100/50",
+                            sub: "Voucher 1 triệu đồng",
+                            tag: "",
+                          }
+                        ].map((item) => {
+                          const IconComp = item.icon;
+                          return (
+                            <div 
+                              key={item.id}
+                              className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative group hover:border-[#a27b43]/30 transition-colors"
+                            >
+                              {/* Tag on top right */}
+                              {item.tag && (
+                                <span className="absolute top-3.5 right-3.5 bg-red-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
+                                  {item.tag}
+                                </span>
+                              )}
+
+                              <div>
+                                {/* Icon container */}
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3.5 ${item.iconColor}`}>
+                                  <IconComp className="w-4.5 h-4.5" />
+                                </div>
+
+                                <h5 className="text-[11.5px] font-black text-neutral-800 leading-tight mb-1">
+                                  {item.title}
+                                </h5>
+                                <p className="text-[9.5px] text-neutral-400 font-medium leading-snug mb-4">
+                                  {item.sub}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setClaimedPrivilege(item.title)}
+                                className="w-full py-2 bg-neutral-50 hover:bg-[#a27b43] text-neutral-600 hover:text-white font-bold text-[10px] rounded-xl transition-all cursor-pointer"
+                              >
+                                Nhận ngay
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* 3. GOALS TRACKER MODAL */}
               {activeModal === 'goals' && (
-                <div className="flex flex-col h-full font-sans">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-[#b08953]/10 border border-[#b08953]/20 rounded-xl">
-                      <Trophy className="w-5 h-5 text-[#b08953]" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Mục tiêu tích lũy</h3>
-                      <p className="text-[10px] text-neutral-400">Quản lý lộ trình đổi quà Vingroup của bạn</p>
-                    </div>
+                <div className="flex flex-col h-full font-sans max-h-[75vh]">
+                  {/* Custom Header matching the design */}
+                  <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-4 shrink-0">
+                    <button 
+                      onClick={() => {
+                        if (showAddGoalForm) {
+                          setShowAddGoalForm(false);
+                        } else {
+                          setActiveModal(null);
+                        }
+                      }} 
+                      className="p-1.5 hover:bg-neutral-100 rounded-full cursor-pointer transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-neutral-600" />
+                    </button>
+                    <span className="text-sm font-black text-neutral-800 tracking-wide">Mục tiêu</span>
+                    <button 
+                      onClick={() => setActiveModal(null)} 
+                      className="p-1.5 hover:bg-neutral-100 rounded-full cursor-pointer transition-colors"
+                    >
+                      <Home className="w-4.5 h-4.5 text-neutral-600" />
+                    </button>
                   </div>
 
-                  {/* Goal Selector tabs */}
-                  <div className="grid grid-cols-3 gap-1 bg-neutral-100 p-1 border border-neutral-200 rounded-xl mb-4">
-                    {[
-                      { id: 'vf9', label: 'VinFast VF9', target: 150000 },
-                      { id: 'villa', label: 'Vinhomes Villa', target: 500000 },
-                      { id: 'vacation', label: 'Tổng thống Resort', target: 80000 }
-                    ].map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => setSelectedGoal(g.id as any)}
-                        className={`py-1.5 px-1 text-[9px] font-bold uppercase rounded-lg transition-colors cursor-pointer ${selectedGoal === g.id ? 'bg-[#b08953] text-white' : 'text-neutral-500 hover:text-neutral-800'}`}
-                      >
-                        {g.id === 'vf9' ? 'Xe VF9' : g.id === 'villa' ? 'Biệt thự' : 'Nghỉ dưỡng'}
-                      </button>
-                    ))}
-                  </div>
+                  {showAddGoalForm ? (
+                    /* ADD GOAL FORM */
+                    <form onSubmit={handleAddGoal} className="space-y-4 py-2 shrink-0">
+                      <h4 className="text-xs font-black text-neutral-800 uppercase tracking-widest">Thêm mục tiêu mới</h4>
+                      
+                      <div>
+                        <label className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Tên mục tiêu</label>
+                        <input
+                          type="text"
+                          required
+                          value={newGoalTitle}
+                          onChange={(e) => setNewGoalTitle(e.target.value)}
+                          placeholder="ví dụ: Mua xe hơi, Quỹ hưu trí..."
+                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#a27b43]"
+                        />
+                      </div>
 
-                  {/* Active Goal Progress display */}
-                  {(() => {
-                    const goalData = {
-                      vf9: { name: "Xe điện sang trọng VinFast VF 9", target: 150000, img: "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=300&q=80", desc: "Phiên bản Plus cao cấp nhất." },
-                      villa: { name: "Biệt thự Đơn lập Vinhomes Royal Island", target: 500000, img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=300&q=80", desc: "Biệt thự sinh thái view trực diện biển mặn." },
-                      vacation: { name: "Kỳ nghỉ VIP 5 ngày 4 đêm tại Vinpearl Presidential", target: 80000, img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=300&q=80", desc: "Trọn gói biệt thự tổng thống bờ biển, bao gồm vé máy bay." }
-                    }[selectedGoal];
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Số tiền mục tiêu (VNĐ)</label>
+                          <input
+                            type="text"
+                            required
+                            value={newGoalTarget}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '');
+                              setNewGoalTarget(val ? parseInt(val).toLocaleString() : '');
+                            }}
+                            placeholder="600.000.000"
+                            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#a27b43]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Đã tiết kiệm (VNĐ)</label>
+                          <input
+                            type="text"
+                            value={newGoalSaved}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '');
+                              setNewGoalSaved(val ? parseInt(val).toLocaleString() : '');
+                            }}
+                            placeholder="180.000.000"
+                            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#a27b43]"
+                          />
+                        </div>
+                      </div>
 
-                    const totalPoints = points + simulatedPoints;
-                    const percent = Math.min(Math.round((totalPoints / goalData.target) * 100), 100);
+                      <div>
+                        <label className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider block mb-1.5">Màu sắc hiển thị</label>
+                        <div className="flex gap-3">
+                          {[
+                            { color: '#a27b43', name: 'Đồng vàng' },
+                            { color: '#3b82f6', name: 'Xanh lam' },
+                            { color: '#10b981', name: 'Xanh lục' },
+                            { color: '#ef4444', name: 'Đỏ' },
+                            { color: '#8b5cf6', name: 'Tím' }
+                          ].map((c) => (
+                            <button
+                              key={c.color}
+                              type="button"
+                              onClick={() => setNewGoalColor(c.color)}
+                              className={`w-6 h-6 rounded-full border-2 transition-all ${newGoalColor === c.color ? 'border-neutral-800 scale-110 shadow' : 'border-transparent hover:scale-105'}`}
+                              style={{ backgroundColor: c.color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
 
-                    return (
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 flex flex-col">
-                        <div className="w-full h-24 rounded-xl overflow-hidden mb-3 relative">
-                          <ProgressiveImage src={goalData.img} alt={goalData.name} className="w-full h-full brightness-75" imgClassName="object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                          <div className="absolute bottom-2 left-3">
-                            <span className="text-[8px] bg-[#b08953] text-white font-black px-1.5 py-0.5 rounded tracking-widest uppercase">
-                              MỤC TIÊU VIP
-                            </span>
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddGoalForm(false)}
+                          className="flex-1 py-2.5 bg-neutral-100 text-neutral-600 font-bold text-[10px] uppercase tracking-wider rounded-xl hover:bg-neutral-200"
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-2.5 bg-[#a27b43] text-white font-bold text-[10px] uppercase tracking-wider rounded-xl hover:bg-[#866330] shadow-md"
+                        >
+                          Thêm
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    /* LIST OF GOALS */
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="overflow-y-auto space-y-3.5 pr-1 flex-1 pb-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-500/20">
+                        {/* A. OVERVIEW CARD */}
+                        <div className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 bg-[#a27b43]/10 rounded-lg">
+                              <Target className="w-4 h-4 text-[#a27b43]" />
+                            </div>
+                            <span className="text-xs font-black text-neutral-800">Tổng quan</span>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-neutral-500">
+                              <span>Tiến độ chung</span>
+                              <span className="text-[#a27b43] font-extrabold">{overallPercent}%</span>
+                            </div>
+
+                            {/* Progress bar track */}
+                            <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden border border-neutral-200/50">
+                              <div 
+                                className="h-full rounded-full transition-all duration-700" 
+                                style={{ 
+                                  width: `${Math.min(parseFloat(overallPercent), 100)}%`,
+                                  backgroundColor: '#a27b43'
+                                }} 
+                              />
+                            </div>
+
+                            <div className="pt-2.5 space-y-1.5 border-t border-neutral-50 text-[10px] font-bold">
+                              <div className="flex justify-between">
+                                <span className="text-neutral-400">Đã tiết kiệm</span>
+                                <span className="text-neutral-800">{totalSaved.toLocaleString()} VNĐ</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-neutral-400">Mục tiêu</span>
+                                <span className="text-neutral-800">{totalTarget.toLocaleString()} VNĐ</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <h4 className="text-xs font-black text-neutral-800 leading-snug mb-1">{goalData.name}</h4>
-                        <p className="text-[10px] text-neutral-500 mb-3">{goalData.desc}</p>
+                        {/* B. LIST CARDS */}
+                        <div className="space-y-3">
+                          {goalsList.map((g) => {
+                            const percent = g.target > 0 ? ((g.saved / g.target) * 100).toFixed(1) : "0.0";
+                            return (
+                              <div 
+                                key={g.id}
+                                className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative group hover:border-[#a27b43]/30 transition-colors"
+                              >
+                                <div className="flex justify-between items-center mb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-2.5 h-2.5 rounded-full shrink-0" 
+                                      style={{ backgroundColor: g.color }}
+                                    />
+                                    <span className="text-xs font-black text-neutral-800 leading-tight">{g.title}</span>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleDeleteGoal(g.id)}
+                                    className="p-1 hover:bg-neutral-100 rounded-full text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
 
-                        {/* Progress Bar */}
-                        <div className="flex justify-between items-center text-[10px] font-bold font-mono text-neutral-500 mb-1">
-                          <span>Tiến độ: {percent}%</span>
-                          <span className="text-amber-700">
-                            {totalPoints.toLocaleString()} / {goalData.target.toLocaleString()} VND
-                          </span>
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between text-[9px] font-bold text-neutral-400 font-mono">
+                                    <span>{g.saved.toLocaleString()} VNĐ</span>
+                                    <span>{g.target.toLocaleString()} VNĐ</span>
+                                  </div>
+
+                                  <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full rounded-full transition-all duration-700" 
+                                      style={{ 
+                                        width: `${Math.min(parseFloat(percent), 100)}%`,
+                                        backgroundColor: g.color 
+                                      }}
+                                    />
+                                  </div>
+
+                                  <div className="text-right">
+                                    <span 
+                                      className="text-[10px] font-black font-mono"
+                                      style={{ color: g.color }}
+                                    >
+                                      {percent}%
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden border border-neutral-300/30 mb-4">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percent}%` }}
-                            transition={{ duration: 1 }}
-                            className="h-full bg-gradient-to-r from-[#b08953] to-amber-500 rounded-full" 
-                          />
-                        </div>
-
-
                       </div>
-                    );
-                  })()}
+
+                      {/* C. ADD GOAL DOTTED BUTTON */}
+                      <button
+                        onClick={() => setShowAddGoalForm(true)}
+                        className="w-full py-3.5 border border-dashed border-neutral-300 bg-neutral-50/50 rounded-2xl flex items-center justify-center gap-1.5 text-neutral-500 text-xs font-extrabold hover:bg-neutral-100 hover:border-neutral-400 transition-all cursor-pointer shrink-0"
+                      >
+                        <span>+ Thêm mục tiêu</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -713,7 +713,7 @@ export default function ProfileTab({
     : VIETNAMESE_BANKS.filter(b => b.name.toLowerCase().includes(bankSearch.toLowerCase()) || b.full.toLowerCase().includes(bankSearch.toLowerCase()));
 
   // Sub-component for Menu Items
-  const MenuItem = ({ icon: Icon, label, onClick, colorClass = "bg-neutral-50 text-neutral-500", value }: { icon: any, label: string, onClick?: () => void, colorClass?: string, value?: string }) => (
+  const MenuItem = ({ icon: Icon, label, onClick, colorClass = "bg-neutral-50 text-neutral-500", value }: { icon: any, label: string, onClick?: () => void, colorClass?: string, value?: React.ReactNode }) => (
     <button 
       onClick={onClick}
       className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors text-left focus:outline-none cursor-pointer"
@@ -724,7 +724,7 @@ export default function ProfileTab({
         </div>
         <div>
           <span className="text-[13px] font-bold text-neutral-800">{label}</span>
-          {value && <p className="text-[10px] text-neutral-400 font-medium">{value}</p>}
+          {value && <div className="text-[10px] text-neutral-400 font-medium">{value}</div>}
         </div>
       </div>
       <ChevronRight className="w-4 h-4 text-neutral-300" />
@@ -886,7 +886,17 @@ export default function ProfileTab({
                 label="Xác thực danh tính" 
                 onClick={() => setActiveModal('kyc')}
                 colorClass="bg-blue-50 text-blue-600"
-                value={verificationStatus === 'Đã xác thực' ? "Đã xác thực" : verificationStatus === 'Đang chờ duyệt' ? "Đang chờ duyệt" : "Chưa xác thực"}
+                value={
+                  verificationStatus === 'Đã xác thực' ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-extrabold">
+                      <Check className="w-3.5 h-3.5 stroke-[3px]" /> Đã xác thực
+                    </span>
+                  ) : verificationStatus === 'Đang chờ duyệt' ? (
+                    <span className="text-amber-500 font-bold">Đang chờ duyệt</span>
+                  ) : (
+                    <span className="text-neutral-400 font-medium">Chưa xác thực</span>
+                  )
+                }
               />
               <MenuItem 
                 icon={FileText} 
@@ -1142,9 +1152,10 @@ export default function ProfileTab({
                   <input 
                     type="text"
                     required
+                    disabled={verificationStatus === 'Đã xác thực'}
                     value={cccdNumber}
                     onChange={(e) => setCccdNumber(e.target.value)}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-blue-500 disabled:opacity-75"
                     placeholder="Nhập 12 số CCCD..."
                   />
                 </div>
@@ -1156,13 +1167,25 @@ export default function ProfileTab({
                     <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt trước CCCD (Tùy chọn)</span>
                     {cccdFront ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
-                        <ProgressiveImage src={cccdFront} alt="Mặt trước CCCD" className="w-full h-full" imgClassName="object-cover" />
-                        <button 
-                          onClick={() => setCccdFront(null)}
-                          className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-full text-white"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <ProgressiveImage 
+                          src={cccdFront} 
+                          alt="Mặt trước CCCD" 
+                          className="w-full h-full" 
+                          imgClassName={`object-cover ${verificationStatus === 'Đã xác thực' ? 'blur-md brightness-50' : ''}`} 
+                        />
+                        {verificationStatus === 'Đã xác thực' ? (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35">
+                            <Check className="w-6 h-6 text-emerald-400 stroke-[3px] filter drop-shadow" />
+                            <span className="text-[9px] text-white font-extrabold uppercase tracking-wider mt-1">Đã xác thực</span>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setCccdFront(null)}
+                            className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-full text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col space-y-1">
@@ -1186,13 +1209,25 @@ export default function ProfileTab({
                     <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt sau CCCD (Tùy chọn)</span>
                     {cccdBack ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
-                        <ProgressiveImage src={cccdBack} alt="Mặt sau CCCD" className="w-full h-full" imgClassName="object-cover" />
-                        <button 
-                          onClick={() => setCccdBack(null)}
-                          className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-full text-white"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <ProgressiveImage 
+                          src={cccdBack} 
+                          alt="Mặt sau CCCD" 
+                          className="w-full h-full" 
+                          imgClassName={`object-cover ${verificationStatus === 'Đã xác thực' ? 'blur-md brightness-50' : ''}`} 
+                        />
+                        {verificationStatus === 'Đã xác thực' ? (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35">
+                            <Check className="w-6 h-6 text-emerald-400 stroke-[3px] filter drop-shadow" />
+                            <span className="text-[9px] text-white font-extrabold uppercase tracking-wider mt-1">Đã xác thực</span>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setCccdBack(null)}
+                            className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-full text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col space-y-1">
@@ -1237,13 +1272,19 @@ export default function ProfileTab({
                 )}
               </div>
 
-              <button 
-                onClick={handleVerifySubmit}
-                disabled={isSubmittingVerify || !cccdFront || !cccdBack || !cccdNumber}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all disabled:opacity-40 shrink-0"
-              >
-                {isSubmittingVerify ? "Đang gửi hồ sơ..." : "Gửi thông tin xác thực"}
-              </button>
+              {verificationStatus === 'Đã xác thực' ? (
+                <div className="w-full py-3.5 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 shrink-0">
+                  <Check className="w-4 h-4 stroke-[3px]" /> Đã xác thực thành công
+                </div>
+              ) : (
+                <button 
+                  onClick={handleVerifySubmit}
+                  disabled={isSubmittingVerify || !cccdFront || !cccdBack || !cccdNumber}
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all disabled:opacity-40 shrink-0"
+                >
+                  {isSubmittingVerify ? "Đang gửi hồ sơ..." : "Gửi thông tin xác thực"}
+                </button>
+              )}
             </motion.div>
           </div>
         )}
