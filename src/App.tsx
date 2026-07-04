@@ -362,7 +362,7 @@ export default function App() {
       } else {
         setProjects(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }
-    });
+    }, (err) => console.error("Error listening to projects:", err));
     return unsub;
   }, []);
 
@@ -373,7 +373,7 @@ export default function App() {
         setLockVerticalMotion(data.lockVerticalMotion !== false);
         setBroadcast(data.broadcast || '');
       }
-    });
+    }, (err) => console.error("Error listening to settings:", err));
     return unsub;
   }, []);
 
@@ -423,7 +423,7 @@ export default function App() {
           content: n.content || ''
         })));
       }
-    });
+    }, (err) => console.error("Error listening to news:", err));
     return unsub;
   }, []);
 
@@ -529,7 +529,7 @@ export default function App() {
       
       const currentLastSeen = parseInt(localStorage.getItem('lastSeenNotifs') || '0', 10);
       setUnreadCount(filtered.filter((n: any) => n.timestamp > currentLastSeen).length);
-    });
+    }, (err) => console.error("Error listening to notifications:", err));
     return unsub;
   }, [userId]);
 
