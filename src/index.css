@@ -109,3 +109,7 @@ html, body, #root {
   white-space: nowrap;
   animation: marquee-infinite 30s linear infinite;
 }
+.overflow-y-auto, .overflow-y-scroll {
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+}

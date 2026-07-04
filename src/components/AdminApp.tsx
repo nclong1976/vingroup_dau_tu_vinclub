@@ -276,7 +276,7 @@ function DashboardAdmin() {
                   <p className="text-xs font-bold text-gray-800">
                     {act.type === 'transaction' 
                       ? `${act.data.userName || 'Người dùng'} - ${act.data.type === 'deposit' || act.data.type === 'plus' ? 'Nạp' : 'Rút'} ${(act.data.amount || 0).toLocaleString()} VNĐ`
-                      : `Thành viên mới: ${act.data.displayName || 'Ẩn danh'}`
+                      : `Thành viên mới: ${act.data.fullName || act.data.displayName || 'Ẩn danh'}`
                     }
                   </p>
                   <div className="flex justify-between items-center mt-1">
@@ -2560,6 +2560,31 @@ function ChatAdmin() {
     }
   };
 
+  const handleQuickSend = async (cannedText: string) => {
+    if (!selectedUser) return;
+    const lastUserMsg = filteredMessages.find(m => m.sender === 'user') || filteredMessages[filteredMessages.length - 1];
+
+    setIsSending(true);
+    try {
+      const timestamp = Date.now();
+      const payload: any = {
+        sender: 'admin',
+        senderEmail: 'admin@gmail.com',
+        userId: selectedUser,
+        userEmail: lastUserMsg?.userEmail || lastUserMsg?.senderEmail || 'Anonymous',
+        userName: lastUserMsg?.userName || 'Người Dùng',
+        text: cannedText,
+        timestamp
+      };
+
+      await addDoc(collection(db, 'support_chat'), payload);
+    } catch (err) {
+      console.error("Lỗi gửi tin nhắn nhanh admin:", err);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const filteredUsersList = usersList.filter(u => 
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -2756,6 +2781,30 @@ function ChatAdmin() {
               </button>
             </div>
           )}
+
+          {/* Canned Quick Responses Section */}
+          <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 flex flex-col gap-1.5 shrink-0 select-none">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block text-left">Tin nhắn soạn trước</span>
+            <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+              {[
+                "Chào anh/chị, tôi là trợ lý VIP VinClub. Tôi có thể hỗ trợ gì cho anh/chị ạ?",
+                "Yêu cầu của anh/chị đã được phê duyệt thành công. Vui lòng kiểm tra lại tài khoản.",
+                "Vui lòng chụp ảnh CCCD rõ nét, không bị chói sáng hoặc mất góc để xác thực.",
+                "Giao dịch đang được xử lý. Hệ thống sẽ hoàn tất trong vòng 3 - 5 phút.",
+                "Cảm ơn anh/chị đã tin tưởng đồng hành cùng Quỹ đầu tư VinClub!"
+              ].map((msg, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleQuickSend(msg)}
+                  disabled={isSending}
+                  className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-[#b08953] hover:text-[#b08953] text-gray-700 text-xs font-semibold rounded-full whitespace-nowrap transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  {msg}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Input Footer */}
           <div className="p-4 bg-white border-t border-gray-200 flex items-center gap-3 shrink-0">

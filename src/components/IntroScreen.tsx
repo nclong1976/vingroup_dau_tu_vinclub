@@ -325,6 +325,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       const profile = {
         userId: uid,
         fullName: finalName,
+        displayName: finalName,
         contact: finalContact,
         photoUrl: url,
         points: 0,

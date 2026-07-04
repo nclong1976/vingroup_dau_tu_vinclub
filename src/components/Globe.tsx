@@ -21,15 +21,16 @@ interface GlobeProps {
 export default function Globe({ userPhoto, projects = [], lockVerticalMotion = true, rotationState, velocityState, isDragging, lastInteraction, onSelect, onHover, onHoverOut }: GlobeProps) {
   const groupRef = useRef<THREE.Group>(null);
   
-  // Precalculate the spherical grid positions and apply random scales
+  // Precalculate the spherical grid positions and apply random scales based on projects count
   const cardData = useMemo(() => {
-    const rawPositions = generateFibonacciSphere(TOTAL_CARDS, GLOBE_RADIUS);
+    const count = projects.length > 0 ? projects.length : 12;
+    const rawPositions = generateFibonacciSphere(count, GLOBE_RADIUS);
     return rawPositions.map((pos) => ({
       position: pos,
       // Random scale between 0.6x and 1.3x to make size uneven but keeping orientation
       scale: 0.6 + Math.random() * 0.7 
     }));
-  }, []);
+  }, [projects.length]);
 
   useFrame(() => {
     if (!groupRef.current) return;

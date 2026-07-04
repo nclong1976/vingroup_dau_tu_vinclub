@@ -1164,7 +1164,7 @@ export default function ProfileTab({
                 <div className="grid grid-cols-2 gap-3">
                   {/* Front Side */}
                   <div className="flex flex-col space-y-1.5">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt trước CCCD (Tùy chọn)</span>
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt trước CCCD (Bắt buộc)</span>
                     {cccdFront ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
                         <ProgressiveImage 
@@ -1206,7 +1206,7 @@ export default function ProfileTab({
 
                   {/* Back Side */}
                   <div className="flex flex-col space-y-1.5">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt sau CCCD (Tùy chọn)</span>
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt sau CCCD (Bắt buộc)</span>
                     {cccdBack ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
                         <ProgressiveImage 
