@@ -31,9 +31,9 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
 
   // 3. Goal Tracker States
   const [goalsList, setGoalsList] = useState([
-    { id: '1', title: 'Quỹ hưu trí', saved: 125000000, target: 500000000, color: '#a27b43' },
-    { id: '2', title: 'Du lịch châu Âu', saved: 35000000, target: 80000000, color: '#3b82f6' },
-    { id: '3', title: 'Mua xe hơi', saved: 180000000, target: 600000000, color: '#10b981' }
+    { id: '1', title: 'Quỹ hưu trí', saved: 0, target: 500000000, color: '#a27b43' },
+    { id: '2', title: 'Du lịch châu Âu', saved: 0, target: 80000000, color: '#3b82f6' },
+    { id: '3', title: 'Mua xe hơi', saved: 0, target: 600000000, color: '#10b981' }
   ]);
   const [showAddGoalForm, setShowAddGoalForm] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState("");
