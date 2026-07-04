@@ -129,6 +129,20 @@ import NewsSection from './components/NewsSection';
 import AllNewsPage from './components/AllNewsPage';
 import NewsDetailPage from './components/NewsDetailPage';
 
+const liveWithdrawals = [
+  "Nguyễn Văn Bảo rút lãi suất thành công 250.000.000 VND",
+  "Trần Thị Lan rút lãi suất thành công 75.000.000 VND",
+  "Phạm Minh Hoàng rút lãi suất thành công 1.250.000.000 VND",
+  "Lê Thanh Sơn rút lãi suất thành công 3.500.000.000 VND",
+  "Hoàng Anh Tuấn rút lãi suất thành công 10.000.000.000 VND",
+  "Nguyễn Thị Phương rút lãi suất thành công 450.000.000 VND",
+  "Vũ Đức Long rút lãi suất thành công 8.200.000.000 VND",
+  "Đỗ Minh Trí rút lãi suất thành công 150.000.000 VND",
+  "Lâm Bửu Gia rút lãi suất thành công 950.000.000 VND",
+  "Tạ Quốc Bảo rút lãi suất thành công 5.400.000.000 VND"
+];
+const marqueeText = liveWithdrawals.join("   •   ") + "   •   ";
+
 export default function App() {
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("Trần Duy Thái");
@@ -962,6 +976,22 @@ export default function App() {
                 >
                   <BalanceCard userName={userName} userPhoto={userPhoto || undefined} rank={rank} balance={balance} points={points} />
                 </motion.div>
+
+                {/* LIVE WITHDRAWALS BROADCAST BANNER */}
+                <div className="w-full px-4 max-w-[360px] shrink-0 mt-3 mb-1">
+                  <div className="w-full bg-[#121214]/65 border border-amber-500/15 rounded-xl py-2 px-3 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-md">
+                    <div className="flex items-center gap-1.5 text-amber-500 mr-3 shrink-0 font-bold border-r border-amber-500/10 pr-2.5">
+                      <Megaphone className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                      <span className="text-[9px] tracking-widest font-black uppercase text-amber-400">VINCLUB</span>
+                    </div>
+                    <div className="relative flex flex-1 overflow-hidden h-4 items-center">
+                      <div className="flex gap-8 whitespace-nowrap animate-marquee-infinite text-[11px] font-sans font-medium text-stone-200">
+                        <span>{marqueeText}</span>
+                        <span>{marqueeText}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* 2. THE GLOBE */}
                 <motion.div 

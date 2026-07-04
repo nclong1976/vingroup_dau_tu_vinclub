@@ -98,3 +98,14 @@ html, body, #root {
     scrollbar-width: none;
   }
 }
+
+@keyframes marquee-infinite {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.animate-marquee-infinite {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee-infinite 30s linear infinite;
+}
