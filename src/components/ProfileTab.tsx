@@ -385,24 +385,23 @@ export default function ProfileTab({
       const frontImg = cccdFront || "";
       const backImg = cccdBack || "";
 
+      const verifyData = {
+        cccdNumber,
+        cccdFront: frontImg,
+        cccdBack: backImg,
+        isApproved: false // Gửi cho admin duyệt
+      };
+
       if (uid.startsWith('local-user-')) {
         const localUserStr = localStorage.getItem('vinclub_local_user');
         if (localUserStr) {
-          const localUser = JSON.parse(localUserStr);
-          localUser.cccdNumber = cccdNumber;
-          localUser.cccdFront = frontImg;
-          localUser.cccdBack = backImg;
-          localUser.isApproved = false; // Gửi cho admin duyệt
+          const localUser = { ...JSON.parse(localUserStr), ...verifyData };
           localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
         }
-      } else {
-        await updateDoc(doc(db, 'users', uid), {
-          cccdNumber,
-          cccdFront: frontImg,
-          cccdBack: backImg,
-          isApproved: false // Gửi cho admin duyệt
-        });
       }
+      
+      // Always write to Firestore users collection
+      await setDoc(doc(db, 'users', uid), verifyData, { merge: true });
       setVerificationStatus('Đang chờ duyệt');
       alert("Đã gửi thông tin xác minh! Quản trị viên sẽ phê duyệt hồ sơ của bạn sớm nhất có thể.");
       setActiveModal(null);
@@ -621,26 +620,25 @@ export default function ProfileTab({
 
     const uid = auth.currentUser?.uid || userId;
     if (uid) {
+      const bankData = {
+        bankName: bankSelect,
+        bankAccount: bankAccount,
+        bankOwner: bankOwner.toUpperCase(),
+        updatedAt: new Date().toISOString()
+      };
+
       if (uid.startsWith('local-user-')) {
         const localUserStr = localStorage.getItem('vinclub_local_user');
         if (localUserStr) {
-          const localUser = JSON.parse(localUserStr);
-          localUser.bankName = bankSelect;
-          localUser.bankAccount = bankAccount;
-          localUser.bankOwner = bankOwner.toUpperCase();
+          const localUser = { ...JSON.parse(localUserStr), ...bankData };
           localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
         }
-      } else {
-        try {
-          await updateDoc(doc(db, 'users', uid), {
-            bankName: bankSelect,
-            bankAccount: bankAccount,
-            bankOwner: bankOwner.toUpperCase(),
-            updatedAt: new Date().toISOString()
-          });
-        } catch (err) {
-          console.error("Lỗi khi lưu thông tin ngân hàng vào Firestore:", err);
-        }
+      }
+      
+      try {
+        await setDoc(doc(db, 'users', uid), bankData, { merge: true });
+      } catch (err) {
+        console.error("Lỗi khi lưu thông tin ngân hàng vào Firestore:", err);
       }
     }
 
@@ -651,18 +649,28 @@ export default function ProfileTab({
     }, 2000);
   };
 
-  // Signature creation modal callback
   const handleSaveSignature = async (sigDataUrl: string) => {
     setSignature(sigDataUrl);
     localStorage.setItem('vinclub_user_signature', sigDataUrl);
     
-    // Save to firestore if logged in
-    const uid = auth.currentUser?.uid;
+    // Sync to local storage
+    const localUserStr = localStorage.getItem('vinclub_local_user');
+    if (localUserStr) {
+      try {
+        const localUser = JSON.parse(localUserStr);
+        localUser.signature_content = sigDataUrl;
+        localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
+      } catch (e) {
+        console.error("Lỗi khi lưu chữ ký vào local storage:", e);
+      }
+    }
+
+    const uid = auth.currentUser?.uid || userId;
     if (uid) {
       try {
-        await updateDoc(doc(db, 'users', uid), {
+        await setDoc(doc(db, 'users', uid), {
           signature_content: sigDataUrl
-        });
+        }, { merge: true });
       } catch (e) {
         console.error("Lỗi khi lưu chữ ký vào Firestore:", e);
       }
@@ -685,17 +693,16 @@ export default function ProfileTab({
             delete localUser.bankOwner;
             localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
           }
-        } else {
-          try {
-            await updateDoc(doc(db, 'users', uid), {
-              bankName: "",
-              bankAccount: "",
-              bankOwner: "",
-              updatedAt: new Date().toISOString()
-            });
-          } catch (err) {
-            console.error("Lỗi khi xóa ngân hàng trên Firestore:", err);
-          }
+        }
+        try {
+          await setDoc(doc(db, 'users', uid), {
+            bankName: "",
+            bankAccount: "",
+            bankOwner: "",
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error("Lỗi khi xóa ngân hàng trên Firestore:", err);
         }
       }
     }

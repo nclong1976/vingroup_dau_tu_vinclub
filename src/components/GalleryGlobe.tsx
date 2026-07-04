@@ -22,6 +22,64 @@ function CameraController({ targetZ }: { targetZ: React.MutableRefObject<number>
   return null;
 }
 
+function SecretKey3D({ onClick }: { onClick: () => void }) {
+  const meshRef = useRef<THREE.Group>(null);
+  const [hovered, setHovered] = useState(false);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Gentle spin and float animation in 3D space
+      meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.8;
+      meshRef.current.position.y = Math.sin(state.clock.getElapsedTime() * 1.5) * 0.08;
+    }
+  });
+
+  return (
+    <group 
+      ref={meshRef} 
+      onClick={(e) => {
+        e.stopPropagation();
+        const cameraZ = e.camera.position.z;
+        // If camera is still outside the globe sphere wall (radius 8), ignore click
+        if (cameraZ > 12) {
+          return;
+        }
+        onClick();
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerOut={(e) => {
+        e.stopPropagation();
+        setHovered(false);
+      }}
+      scale={hovered ? 0.35 : 0.3}
+    >
+      {/* 3D Key Model using standard R3F primitives */}
+      {/* Head Ring */}
+      <mesh position={[0, 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.2, 0.05, 8, 24]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
+      </mesh>
+      {/* Key Shaft */}
+      <mesh position={[0, -0.15, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.5, 8]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
+      </mesh>
+      {/* Key Teeth */}
+      <mesh position={[0.08, -0.28, 0]}>
+        <boxGeometry args={[0.1, 0.04, 0.04]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
+      </mesh>
+      <mesh position={[0.06, -0.36, 0]}>
+        <boxGeometry args={[0.08, 0.04, 0.04]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.05} />
+      </mesh>
+    </group>
+  );
+}
+
 export default function GalleryGlobe({ 
   userPhoto, 
   projects: propProjects = [],
@@ -195,7 +253,7 @@ export default function GalleryGlobe({
 
   const handlePasscodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode.trim() === '1976') {
+    if (passcode.trim() === '7981') {
       setShowKeyModal(false);
       setShowPoemModal(true);
       setPasscode('');
@@ -238,6 +296,8 @@ export default function GalleryGlobe({
               onHover={(info) => setTooltipInfo(parseTooltip(info))}
               onHoverOut={() => setTooltipInfo(null)}
             />
+            {/* Secret 3D Key at the center of the globe */}
+            <SecretKey3D onClick={() => setShowKeyModal(true)} />
           </group>
         </Suspense>
       </Canvas>
@@ -268,30 +328,6 @@ export default function GalleryGlobe({
         </div>
       )}
 
-      {/* Floating Key Easter Egg */}
-      <div 
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowKeyModal(true);
-        }}
-        className="absolute top-[126px] left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 cursor-pointer pointer-events-auto"
-        style={{
-          animation: 'floatKey 3s ease-in-out infinite',
-        }}
-      >
-        <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.7)] border border-amber-300 hover:scale-110 active:scale-95 transition-all duration-300">
-          <Key className="w-4.5 h-4.5 text-neutral-900" />
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes floatKey {
-          0% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
-          50% { transform: translate(-50%, -50%) translateY(-6px) rotate(8deg); }
-          100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
-        }
-      `}</style>
-
       {/* Passcode Prompt Modal */}
       {showKeyModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
@@ -300,7 +336,8 @@ export default function GalleryGlobe({
               Mật Mã Bảo Mật
             </h4>
             <p className="text-[11px] text-gray-400 text-center mb-4 leading-relaxed">
-              Vui lòng nhập mật mã gồm 4 chữ số để giải mã thông điệp ẩn giấu.
+              Vui lòng nhập mật mã gồm 4 chữ số để giải mã thông điệp ẩn giấu. <br />
+              <span className="text-[9px] text-amber-500/60 font-bold">(Gợi ý: 7981)</span>
             </p>
             <form onSubmit={handlePasscodeSubmit} className="space-y-4">
               <input 

@@ -60,12 +60,12 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
   }, [initialMessage]);
 
   useEffect(() => {
+    const uid = auth.currentUser?.uid || userId || 'Anonymous';
+    
     const unsub = onSnapshot(collection(db, 'support_chat'), (snap) => {
-      const currentUserEmail = auth.currentUser?.email || 'Anonymous';
       const msgs = snap.docs
         .map(doc => {
           const data = doc.data();
-          const msgEmail = data.userEmail || data.senderEmail || 'Anonymous';
           return {
             id: doc.id,
             text: data.text,
@@ -75,10 +75,11 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
             fileUrl: data.fileUrl,
             fileType: data.fileType,
             fileName: data.fileName,
-            userEmail: msgEmail
+            userEmail: data.userEmail || 'Anonymous',
+            userId: data.userId || ''
           } as ChatMessage;
         })
-        .filter(m => m.userEmail === currentUserEmail);
+        .filter(m => m.userId === uid || (uid === 'Anonymous' && m.userEmail === 'Anonymous'));
 
       msgs.sort((a, b) => (a.unixTime || 0) - (b.unixTime || 0));
       setMessages(msgs);
@@ -87,7 +88,7 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
       }, 120);
     }, (error) => { console.error('Error in support_chat:', error); });
     return unsub;
-  }, []);
+  }, [userId]);
 
 
 
@@ -95,11 +96,17 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
     if (!typedText.trim()) return;
     const text = typedText;
     setTypedText('');
+    
+    const uid = auth.currentUser?.uid || userId || 'Anonymous';
+    const email = auth.currentUser?.email || 'Anonymous';
+
     await addDoc(collection(db, 'support_chat'), {
       text,
       sender: 'user',
-      senderEmail: auth.currentUser?.email || 'Anonymous',
-      userEmail: auth.currentUser?.email || 'Anonymous',
+      senderEmail: email,
+      userEmail: email,
+      userId: uid,
+      userName: userName || 'Nhà Đầu Tư',
       timestamp: Date.now()
     });
   };
@@ -115,11 +122,16 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64String = reader.result as string;
+      const uid = auth.currentUser?.uid || userId || 'Anonymous';
+      const email = auth.currentUser?.email || 'Anonymous';
+
       await addDoc(collection(db, 'support_chat'), {
         text: '',
         sender: 'user',
-        senderEmail: auth.currentUser?.email || 'Anonymous',
-        userEmail: auth.currentUser?.email || 'Anonymous',
+        senderEmail: email,
+        userEmail: email,
+        userId: uid,
+        userName: userName || 'Nhà Đầu Tư',
         timestamp: Date.now(),
         fileUrl: base64String,
         fileType: file.type,

@@ -2448,10 +2448,10 @@ function ChatAdmin() {
 
   // Compute the list of users who have active chats, grouped by their email
   const usersList = React.useMemo(() => {
-    const map = new Map<string, { email: string; lastMessage: string; timestamp: number; unreadCount: number }>();
+    const map = new Map<string, { userId: string; userName: string; email: string; lastMessage: string; timestamp: number; unreadCount: number }>();
     messages.forEach(m => {
-      const email = m.userEmail || m.senderEmail || 'Anonymous';
-      const existing = map.get(email);
+      const keyId = m.userId || m.userEmail || m.senderEmail || 'Anonymous';
+      const existing = map.get(keyId);
       
       let msgPreview = m.text || '';
       if (m.fileUrl) {
@@ -2461,14 +2461,16 @@ function ChatAdmin() {
       }
 
       if (!existing || m.timestamp > existing.timestamp) {
-        map.set(email, {
-          email,
+        map.set(keyId, {
+          userId: m.userId || keyId,
+          userName: m.userName || m.userEmail || m.senderEmail || 'Anonymous',
+          email: m.userEmail || m.senderEmail || 'Anonymous',
           lastMessage: msgPreview,
           timestamp: m.timestamp || Date.now(),
-          unreadCount: (existing?.unreadCount || 0) + (m.sender !== 'admin' && email !== selectedUser ? 1 : 0)
+          unreadCount: (existing?.unreadCount || 0) + (m.sender !== 'admin' && keyId !== selectedUser ? 1 : 0)
         });
       } else {
-        if (m.sender !== 'admin' && email !== selectedUser) {
+        if (m.sender !== 'admin' && keyId !== selectedUser) {
           existing.unreadCount += 1;
         }
       }
@@ -2479,13 +2481,13 @@ function ChatAdmin() {
   // Auto-select the first user if none is selected
   useEffect(() => {
     if (!selectedUser && usersList.length > 0) {
-      setSelectedUser(usersList[0].email);
+      setSelectedUser(usersList[0].userId);
     }
   }, [usersList, selectedUser]);
 
   // Scroll to bottom when selected user's messages change
   const filteredMessages = React.useMemo(() => {
-    return messages.filter(m => (m.userEmail || m.senderEmail || 'Anonymous') === selectedUser);
+    return messages.filter(m => (m.userId || m.userEmail || m.senderEmail || 'Anonymous') === selectedUser);
   }, [messages, selectedUser]);
 
   useEffect(() => {
@@ -2524,13 +2526,17 @@ function ChatAdmin() {
     if (!selectedUser) return;
     if (!replyText.trim() && !selectedFile) return;
 
+    const lastUserMsg = filteredMessages.find(m => m.sender === 'user') || filteredMessages[filteredMessages.length - 1];
+
     setIsSending(true);
     try {
       const timestamp = Date.now();
       const payload: any = {
         sender: 'admin',
         senderEmail: 'admin@gmail.com',
-        userEmail: selectedUser,
+        userId: selectedUser,
+        userEmail: lastUserMsg?.userEmail || lastUserMsg?.senderEmail || 'Anonymous',
+        userName: lastUserMsg?.userName || 'Người Dùng',
         timestamp
       };
 
@@ -2555,7 +2561,8 @@ function ChatAdmin() {
   };
 
   const filteredUsersList = usersList.filter(u => 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.userName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -2589,10 +2596,10 @@ function ChatAdmin() {
           ) : (
             filteredUsersList.map(u => (
               <button
-                key={u.email}
-                onClick={() => setSelectedUser(u.email)}
+                key={u.userId}
+                onClick={() => setSelectedUser(u.userId)}
                 className={`w-full text-left p-4 transition-all flex items-start gap-3 hover:bg-gray-50 cursor-pointer ${
-                  selectedUser === u.email ? 'bg-amber-50/40 border-l-4 border-[#b08953]' : ''
+                  selectedUser === u.userId ? 'bg-amber-50/40 border-l-4 border-[#b08953]' : ''
                 }`}
               >
                 <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 border border-neutral-200">
@@ -2600,16 +2607,17 @@ function ChatAdmin() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <h4 className="font-semibold text-xs text-gray-800 truncate" title={u.email}>
-                      {u.email}
+                    <h4 className="font-semibold text-xs text-gray-800 truncate" title={u.userName}>
+                      {u.userName}
                     </h4>
                     <span className="text-[10px] text-gray-400 font-mono">
                       {new Date(u.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">{u.lastMessage}</p>
+                  <p className="text-[9px] text-gray-400 font-mono truncate">{u.email}</p>
                 </div>
-                {u.unreadCount > 0 && selectedUser !== u.email && (
+                {u.unreadCount > 0 && selectedUser !== u.userId && (
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 self-center"></span>
                 )}
               </button>
@@ -2628,7 +2636,9 @@ function ChatAdmin() {
                 <User className="w-4.5 h-4.5 text-[#b08953]" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-gray-900">{selectedUser}</h3>
+                <h3 className="font-bold text-sm text-gray-900">
+                  {usersList.find(ul => ul.userId === selectedUser)?.userName || selectedUser}
+                </h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Đang xem hội thoại</span>

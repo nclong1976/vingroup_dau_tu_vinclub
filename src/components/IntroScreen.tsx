@@ -14,7 +14,7 @@ declare global {
 }
 
 interface IntroScreenProps {
-  onStart: (photoBase64: string, name: string) => void;
+  onStart: (photoBase64: string, name: string, uid?: string) => void;
 }
 
 type OnboardingStep = 'login' | 'otp' | 'register' | 'terms' | 'upload';
@@ -128,7 +128,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       
       if (!contactSnap.empty) {
         const existingUser = contactSnap.docs[0].data();
-        onStart(existingUser.photoUrl || '/new-test.png', existingUser.fullName);
+        onStart(existingUser.photoUrl || '/new-test.png', existingUser.fullName, existingUser.userId);
       } else {
         // Check localStorage matching contact
         const localUserStr = localStorage.getItem('vinclub_local_user');
@@ -136,7 +136,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
           try {
             const localUser = JSON.parse(localUserStr);
             if (localUser.contact === loginContact.trim()) {
-              onStart(localUser.photoUrl || '/new-test.png', localUser.fullName);
+              onStart(localUser.photoUrl || '/new-test.png', localUser.fullName, localUser.userId);
               setIsLoading(false);
               return;
             }
@@ -369,7 +369,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         console.warn("Unable to write profile to Firestore:", dbErr);
       }
 
-      onStart(url, finalName);
+      onStart(url, finalName, uid);
     } catch (error) {
       console.error("onboarding start error:", error);
       // absolute fail-safe fallback to ensure user is never blocked
@@ -387,7 +387,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         updatedAt: new Date().toISOString()
       };
       localStorage.setItem('vinclub_local_user', JSON.stringify(fallbackProfile));
-      onStart(url, finalName);
+      onStart(url, finalName, localUid);
     } finally {
       setIsLoading(false);
     }

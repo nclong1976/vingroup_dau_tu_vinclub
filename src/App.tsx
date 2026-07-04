@@ -13,7 +13,7 @@ import { LOCATIONS } from './data';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc, collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, onSnapshot, addDoc } from 'firebase/firestore';
 import QuickMenuGrid from './components/QuickMenuGrid';
 import ContractSignModal from './components/ContractSignModal';
 import ProgressiveImage from './components/ProgressiveImage';
@@ -458,54 +458,59 @@ export default function App() {
         if (localUser.points) setPoints(localUser.points);
         if (localUser.rank) setRank(localUser.rank);
         if (localUser.memberId) setMemberId(localUser.memberId);
-        if (localUser.uid) setUserId(localUser.uid);
+        if (localUser.userId) setUserId(localUser.userId);
+        else if (localUser.uid) setUserId(localUser.uid);
       } catch (e) {
         console.error("Error loading local user on mount:", e);
       }
     }
     
-    let unsubUser: (() => void) | null = null;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (unsubUser) {
-        unsubUser();
-        unsubUser = null;
-      }
-
       if (user) {
         setUserId(user.uid);
-        // Check if admin
         if (user.email === 'admin@gmail.com') {
           setIsAdmin(true);
           navigate('/admin');
         } else {
           setIsAdmin(false);
         }
-
-        // Real-time listener for user data
-        const userRef = doc(db, 'users', user.uid);
-        unsubUser = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setUserData({ uid: user.uid, ...data });
-            if (data.fullName) setUserName(data.fullName);
-            if (data.photoUrl) setUserPhoto(data.photoUrl);
-            if (data.points !== undefined) setPoints(data.points);
-            if (data.balance !== undefined) setBalance(data.balance);
-            if (data.rank) setRank(data.rank);
-            if (data.memberId) setMemberId(data.memberId);
-          }
-        }, (err) => console.error("Error listening to user profile:", err));
       } else {
-        setUserId(null);
-        setIsAdmin(false);
-        setUserPhoto(null);
+        const localUserStr = localStorage.getItem('vinclub_local_user');
+        if (!localUserStr) {
+          setUserId(null);
+          setIsAdmin(false);
+          setUserPhoto(null);
+        }
       }
     });
-    return () => {
-      unsubscribe();
-      if (unsubUser) unsubUser();
-    };
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    
+    if (auth.currentUser?.email === 'admin@gmail.com') {
+      setIsAdmin(true);
+      navigate('/admin');
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const unsubUser = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData({ uid: userId, ...data });
+        if (data.fullName) setUserName(data.fullName);
+        if (data.photoUrl) setUserPhoto(data.photoUrl);
+        if (data.points !== undefined) setPoints(data.points);
+        if (data.balance !== undefined) setBalance(data.balance);
+        if (data.rank) setRank(data.rank);
+        if (data.memberId) setMemberId(data.memberId);
+      }
+    }, (err) => console.error("Error listening to user profile:", err));
+
+    return () => unsubUser();
+  }, [userId]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'notifications'), (snap) => {
@@ -591,11 +596,11 @@ export default function App() {
       }
     }
     
-    // Sync to firestore if logged in
-    if (auth.currentUser) {
+    // Sync to firestore if userId is set
+    if (userId) {
       try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        await updateDoc(userRef, { points: newPoints, rank: newRank });
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { points: newPoints, rank: newRank }, { merge: true });
       } catch (e) {
         console.error("Error syncing points to Firestore:", e);
       }
@@ -617,11 +622,11 @@ export default function App() {
       }
     }
     
-    // Sync to firestore if logged in
-    if (auth.currentUser) {
+    // Sync to firestore if userId is set
+    if (userId) {
       try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        await updateDoc(userRef, { photoUrl: newPhotoUrl });
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { photoUrl: newPhotoUrl }, { merge: true });
       } catch (e) {
         console.error("Error syncing photo to Firestore:", e);
       }
@@ -744,9 +749,10 @@ export default function App() {
 
       {!userPhoto ? (
         <div className="absolute inset-0 flex items-center justify-center bg-[#09090b] z-50">
-          <IntroScreen onStart={(photo, name) => {
+          <IntroScreen onStart={(photo, name, uid) => {
             setUserPhoto(photo);
             setUserName(name || "Trần Duy Thái");
+            if (uid) setUserId(uid);
             setIsLoadingGlobe(true);
           }} />
         </div>
