@@ -587,7 +587,7 @@ export default function App() {
     setPoints(newPoints);
     
     // Tier upgrade logic
-    let newRank = "Member";
+    let newRank = "THÀNH VIÊN / MEMBER";
     if (newPoints >= 10000000000) {
       newRank = "KIM CƯƠNG / DIAMOND";
     } else if (newPoints >= 5000000000) {

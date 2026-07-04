@@ -398,7 +398,7 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
       return res.status(403).json({ success: false, error: "Unauthorized" });
     }
 
-    console.log("Starting daily interest distribution (0.4%)...");
+    console.log("Starting daily interest distribution based on card tiers...");
     
     // 1. Generate reference date (YYYY-MM-DD)
     const now = new Date();
@@ -433,7 +433,16 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
       const currentPoints = userData.points || 0;
       
       if (currentPoints > 0) {
-        const interestRate = 0.004; // 0.4%
+        const rank = userData.rank || '';
+        let interestRate = 0.004; // Mặc định MEMBER: 0.4%
+        if (rank.includes('DIAMOND') || rank.includes('KIM CƯƠNG') || rank.includes('KIM CUONG')) {
+          interestRate = 0.02; // DIAMOND: 2%
+        } else if (rank.includes('PLATINUM') || rank.includes('BẠCH KIM') || rank.includes('BACH KIM')) {
+          interestRate = 0.012; // PLATINUM: 1.2%
+        } else if (rank.includes('GOLD') || rank.includes('VÀNG') || rank.includes('VANG')) {
+          interestRate = 0.008; // GOLD: 0.8%
+        }
+
         const interestAmount = Math.floor(currentPoints * interestRate);
         
         if (interestAmount > 0) {
@@ -445,10 +454,11 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
             currentBatchSize = 0;
           }
 
-          // Update user points
+          // Update user points and balance
           const userRef = dbAdmin.collection('users').doc(userId);
           currentBatch.update(userRef, {
-            points: FieldValue.increment(interestAmount)
+            points: FieldValue.increment(interestAmount),
+            balance: FieldValue.increment(interestAmount)
           });
 
           // Create transaction log
@@ -460,7 +470,7 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
             type: 'plus',
             paymentMethod: 'system',
             status: 'Thành công',
-            description: 'Lợi nhuận ủy thác hằng ngày (0.4%)',
+            description: `Lợi nhuận ủy thác hằng ngày (${(interestRate * 100).toFixed(1)}%)`,
             referenceDate: refDate, // Idempotency key
             date: now.toISOString(),
             createdAt: FieldValue.serverTimestamp()

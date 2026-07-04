@@ -67,8 +67,8 @@ export default function TransactionsAdmin() {
             const newPoints = currentPoints + tx.amount;
             const newCumulative = currentCumulative + tx.amount;
             
-            // Determine new tier
-            let newTier = userData.rank || 'MEMBER';
+            // Determine new tier based on cumulative deposits
+            let newTier = 'THÀNH VIÊN / MEMBER';
             if (newCumulative >= 10000000000) {
               newTier = 'KIM CƯƠNG / DIAMOND';
             } else if (newCumulative >= 5000000000) {

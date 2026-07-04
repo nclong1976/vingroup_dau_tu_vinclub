@@ -1,14 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    match /unique_contacts/{contactId} {
-      allow read: if true;
-      // Chỉ cho phép tạo nếu chưa tồn tại
-      allow create: if !exists(/databases/$(database)/documents/unique_contacts/$(contactId));
-      allow update, delete: if true;
-    }
-
     match /{document=**} {
       allow read, write: if true;
     }

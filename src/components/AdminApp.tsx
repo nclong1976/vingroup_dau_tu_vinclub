@@ -1040,9 +1040,20 @@ function RegistrationAdmin() {
 
   const handleUpdateBalance = async (id: string, newPoints: number) => {
     try {
+      let newTier = 'THÀNH VIÊN / MEMBER';
+      if (newPoints >= 10000000000) {
+        newTier = 'KIM CƯƠNG / DIAMOND';
+      } else if (newPoints >= 5000000000) {
+        newTier = 'BẠCH KIM / PLATINUM';
+      } else if (newPoints >= 1000000000) {
+        newTier = 'VÀNG / GOLD';
+      }
+
       await updateDoc(doc(db, 'users', id), { 
         points: newPoints,
         balance: newPoints,
+        cumulativeDeposits: newPoints,
+        rank: newTier,
         updatedAt: new Date().toISOString()
       });
       console.log("Cập nhật số dư thành công!");
