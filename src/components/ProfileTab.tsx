@@ -15,6 +15,19 @@ import {
   TrendingDown, Bell, ShieldCheck, History
 } from 'lucide-react';
 
+// Helper to mask bank account number: only show last 4 digits, hide others with *
+const maskBankAccount = (accountNum: string): string => {
+  if (!accountNum) return "";
+  const cleaned = accountNum.trim();
+  if (cleaned.length <= 4) {
+    return cleaned;
+  }
+  const lastFour = cleaned.slice(-4);
+  const maskedLength = cleaned.length - 4;
+  const asterisks = "*".repeat(maskedLength);
+  return asterisks + lastFour;
+};
+
 // List of all legal banks in Vietnam
 const VIETNAMESE_BANKS = [
   { code: 'VCB', name: 'Vietcombank', full: 'Ngân hàng Ngoại thương Việt Nam' },
@@ -64,6 +77,7 @@ interface ProfileTabProps {
   onNavigateToSupport?: (initialMessage?: string) => void;
   onUpdatePhoto?: (newPhotoUrl: string) => void;
   onBack?: () => void;
+  userId?: string;
 }
 
 export default function ProfileTab({ 
@@ -77,7 +91,8 @@ export default function ProfileTab({
   onOpenHistory,
   onNavigateToSupport,
   onUpdatePhoto,
-  onBack
+  onBack,
+  userId
 }: ProfileTabProps) {
   
   // Active modal state
@@ -135,8 +150,30 @@ export default function ProfileTab({
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
+    const uid = auth.currentUser?.uid || userId;
     if (!uid) return;
+    
+    if (uid.startsWith('local-user-')) {
+      const localUserStr = localStorage.getItem('vinclub_local_user');
+      if (localUserStr) {
+        try {
+          const localUser = JSON.parse(localUserStr);
+          if (localUser.isApproved === true) {
+            setVerificationStatus('Đã xác thực');
+          } else if (localUser.isApproved === false) {
+            setVerificationStatus('Đang chờ duyệt');
+          } else {
+            setVerificationStatus('Chưa xác thực');
+          }
+          if (localUser.signature_content) {
+            setSignature(localUser.signature_content);
+          }
+        } catch (e) {
+          console.error("Error parsing local user in ProfileTab:", e);
+        }
+      }
+      return;
+    }
     
     // Set email
     if (auth.currentUser.email) {
@@ -323,17 +360,31 @@ export default function ProfileTab({
     }
     setIsSubmittingVerify(true);
     try {
-      const uid = auth.currentUser?.uid;
+      const uid = auth.currentUser?.uid || userId;
       if (uid) {
-        await updateDoc(doc(db, 'users', uid), {
-          cccdNumber,
-          cccdFront,
-          cccdBack,
-          isApproved: false // Gửi cho admin duyệt
-        });
+        if (uid.startsWith('local-user-')) {
+          const localUserStr = localStorage.getItem('vinclub_local_user');
+          if (localUserStr) {
+            const localUser = JSON.parse(localUserStr);
+            localUser.cccdNumber = cccdNumber;
+            localUser.cccdFront = cccdFront;
+            localUser.cccdBack = cccdBack;
+            localUser.isApproved = false; // Gửi cho admin duyệt
+            localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
+          }
+        } else {
+          await updateDoc(doc(db, 'users', uid), {
+            cccdNumber,
+            cccdFront,
+            cccdBack,
+            isApproved: false // Gửi cho admin duyệt
+          });
+        }
         setVerificationStatus('Đang chờ duyệt');
         alert("Đã gửi thông tin xác minh! Quản trị viên sẽ phê duyệt hồ sơ của bạn sớm nhất có thể.");
         setActiveModal(null);
+      } else {
+        alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại!");
       }
     } catch (err) {
       console.error(err);
@@ -738,7 +789,7 @@ export default function ProfileTab({
                 label="Liên kết ngân hàng" 
                 onClick={() => setActiveModal('bank_link')}
                 colorClass="bg-amber-50 text-amber-600"
-                value={linkedBank ? `${linkedBank.bankName} - ${linkedBank.accountNum}` : "Chưa liên kết"}
+                value={linkedBank ? `${linkedBank.bankName} - ${maskBankAccount(linkedBank.accountNum)}` : "Chưa liên kết"}
               />
               <MenuItem 
                 icon={ShieldCheck} 
@@ -1414,7 +1465,7 @@ export default function ProfileTab({
                       <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100 flex justify-between items-center text-xs">
                         <div>
                           <p className="font-extrabold text-neutral-800">{linkedBank.bankName}</p>
-                          <p className="font-mono text-neutral-500 font-bold">{linkedBank.accountNum}</p>
+                          <p className="font-mono text-neutral-500 font-bold">{maskBankAccount(linkedBank.accountNum)}</p>
                         </div>
                         <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 border border-green-100 rounded font-black uppercase">Đã LK</span>
                       </div>

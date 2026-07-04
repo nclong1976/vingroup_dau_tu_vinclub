@@ -1022,6 +1022,7 @@ export default function App() {
                       }}
                       onUpdatePhoto={handleUpdateUserPhoto}
                       onBack={() => setActiveTab('home')}
+                      userId={userId || undefined}
                     />
                   </div>
                 </motion.div>
