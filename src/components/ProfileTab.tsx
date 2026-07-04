@@ -1,7 +1,7 @@
 import ProgressiveImage from './ProgressiveImage';
 import { useState, useRef, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { signOut, signInAnonymously } from 'firebase/auth';
 import { doc, updateDoc, setDoc, onSnapshot, collection, addDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import SignaturePad from './SignaturePad';
@@ -366,38 +366,46 @@ export default function ProfileTab({
 
   // Submit Verification to Admin
   const handleVerifySubmit = async () => {
-    if (!cccdFront || !cccdBack || !cccdNumber) {
-      alert("Vui lòng cung cấp đầy đủ 2 mặt CCCD và Số CCCD!");
+    if (!cccdNumber) {
+      alert("Vui lòng nhập Số CCCD / Hộ chiếu!");
       return;
     }
     setIsSubmittingVerify(true);
     try {
-      const uid = auth.currentUser?.uid || userId;
-      if (uid) {
-        if (uid.startsWith('local-user-')) {
-          const localUserStr = localStorage.getItem('vinclub_local_user');
-          if (localUserStr) {
-            const localUser = JSON.parse(localUserStr);
-            localUser.cccdNumber = cccdNumber;
-            localUser.cccdFront = cccdFront;
-            localUser.cccdBack = cccdBack;
-            localUser.isApproved = false; // Gửi cho admin duyệt
-            localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
-          }
-        } else {
-          await updateDoc(doc(db, 'users', uid), {
-            cccdNumber,
-            cccdFront,
-            cccdBack,
-            isApproved: false // Gửi cho admin duyệt
-          });
+      let uid = auth.currentUser?.uid || userId;
+      if (!uid) {
+        try {
+          const authResult = await signInAnonymously(auth);
+          uid = authResult.user.uid;
+        } catch (err) {
+          uid = 'local-user-' + Math.floor(100000 + Math.random() * 900000);
         }
-        setVerificationStatus('Đang chờ duyệt');
-        alert("Đã gửi thông tin xác minh! Quản trị viên sẽ phê duyệt hồ sơ của bạn sớm nhất có thể.");
-        setActiveModal(null);
-      } else {
-        alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại!");
       }
+      
+      const frontImg = cccdFront || "";
+      const backImg = cccdBack || "";
+
+      if (uid.startsWith('local-user-')) {
+        const localUserStr = localStorage.getItem('vinclub_local_user');
+        if (localUserStr) {
+          const localUser = JSON.parse(localUserStr);
+          localUser.cccdNumber = cccdNumber;
+          localUser.cccdFront = frontImg;
+          localUser.cccdBack = backImg;
+          localUser.isApproved = false; // Gửi cho admin duyệt
+          localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
+        }
+      } else {
+        await updateDoc(doc(db, 'users', uid), {
+          cccdNumber,
+          cccdFront: frontImg,
+          cccdBack: backImg,
+          isApproved: false // Gửi cho admin duyệt
+        });
+      }
+      setVerificationStatus('Đang chờ duyệt');
+      alert("Đã gửi thông tin xác minh! Quản trị viên sẽ phê duyệt hồ sơ của bạn sớm nhất có thể.");
+      setActiveModal(null);
     } catch (err) {
       console.error(err);
       alert("Đã có lỗi xảy ra. Vui lòng thử lại sau.");
@@ -473,9 +481,21 @@ export default function ProfileTab({
     setIsDepositSubmitting(true);
     try {
       const amountVal = parseFloat(depositAmount);
+      let uid = auth.currentUser?.uid || userId;
+      if (!uid) {
+        try {
+          const authResult = await signInAnonymously(auth);
+          uid = authResult.user.uid;
+        } catch (err) {
+          uid = 'local-user-' + Math.floor(100000 + Math.random() * 900000);
+        }
+      }
+      const email = auth.currentUser?.email || userEmail || "N/A";
       
       // Save transaction + contract signature to Firebase
       const newTransaction = {
+        userId: uid,
+        userEmail: email,
         amount: amountVal,
         type: 'plus',
         paymentMethod: depositMethod,
@@ -1126,7 +1146,7 @@ export default function ProfileTab({
                 <div className="grid grid-cols-2 gap-3">
                   {/* Front Side */}
                   <div className="flex flex-col space-y-1.5">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt trước CCCD</span>
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt trước CCCD (Tùy chọn)</span>
                     {cccdFront ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
                         <ProgressiveImage src={cccdFront} alt="Mặt trước CCCD" className="w-full h-full" imgClassName="object-cover" />
@@ -1156,7 +1176,7 @@ export default function ProfileTab({
 
                   {/* Back Side */}
                   <div className="flex flex-col space-y-1.5">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt sau CCCD</span>
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">Mặt sau CCCD (Tùy chọn)</span>
                     {cccdBack ? (
                       <div className="relative w-full h-24 rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50">
                         <ProgressiveImage src={cccdBack} alt="Mặt sau CCCD" className="w-full h-full" imgClassName="object-cover" />

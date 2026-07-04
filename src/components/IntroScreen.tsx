@@ -335,40 +335,38 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         updatedAt: new Date().toISOString()
       };
 
-      if (uid.startsWith('local-user-')) {
-        localStorage.setItem('vinclub_local_user', JSON.stringify(profile));
-      } else {
-        // Try writing to Firestore
-        try {
-          const userRef = doc(db, 'users', uid);
-          const contactRef = doc(db, 'unique_contacts', finalContact);
-          
-          const batch = writeBatch(db);
-          batch.set(userRef, {
-            ...profile,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-          if (finalContact !== 'N/A') {
-            batch.set(contactRef, {
-              uid: uid,
-              createdAt: new Date()
-            });
-          }
-          await batch.commit();
+      // Always store locally as fallback/quick session loader
+      localStorage.setItem('vinclub_local_user', JSON.stringify(profile));
 
-          // Send welcome notification
-          await addDoc(collection(db, 'notifications'), {
-            userId: uid,
-            title: 'Chào mừng thành viên mới',
-            message: `Chào mừng ${finalName} đến với VINCLUB!`,
-            createdAt: new Date(),
-            isRead: false
+      // Always try to write to Firestore users collection
+      try {
+        const userRef = doc(db, 'users', uid);
+        const contactRef = doc(db, 'unique_contacts', finalContact);
+        
+        const batch = writeBatch(db);
+        batch.set(userRef, {
+          ...profile,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        if (finalContact !== 'N/A') {
+          batch.set(contactRef, {
+            uid: uid,
+            createdAt: new Date()
           });
-        } catch (dbErr) {
-          console.warn("Unable to write profile to Firestore, saving to localStorage instead:", dbErr);
-          localStorage.setItem('vinclub_local_user', JSON.stringify(profile));
         }
+        await batch.commit();
+
+        // Send welcome notification
+        await addDoc(collection(db, 'notifications'), {
+          userId: uid,
+          title: 'Chào mừng thành viên mới',
+          message: `Chào mừng ${finalName} đến với VINCLUB!`,
+          createdAt: new Date(),
+          isRead: false
+        });
+      } catch (dbErr) {
+        console.warn("Unable to write profile to Firestore:", dbErr);
       }
 
       onStart(url, finalName);
