@@ -113,11 +113,7 @@ export default function ProfileTab({
         return null;
       }
     }
-    return {
-      bankName: "Vietcombank",
-      accountNum: "1023847589",
-      accountOwner: "TRAN DUY THAI"
-    };
+    return null;
   });
   
   // Signature state
@@ -167,6 +163,13 @@ export default function ProfileTab({
           }
           if (localUser.signature_content) {
             setSignature(localUser.signature_content);
+          }
+          if (localUser.bankName && localUser.bankAccount) {
+            setLinkedBank({
+              bankName: localUser.bankName,
+              accountNum: localUser.bankAccount,
+              accountOwner: localUser.bankOwner || ""
+            });
           }
         } catch (e) {
           console.error("Error parsing local user in ProfileTab:", e);
@@ -248,6 +251,15 @@ export default function ProfileTab({
         if (data.signature_content) {
           setSignature(data.signature_content);
           localStorage.setItem('vinclub_user_signature', data.signature_content);
+        }
+        if (data.bankName && data.bankAccount) {
+          const bankInfo = {
+            bankName: data.bankName,
+            accountNum: data.bankAccount,
+            accountOwner: data.bankOwner || ""
+          };
+          setLinkedBank(bankInfo);
+          localStorage.setItem('vinclub_linked_bank', JSON.stringify(bankInfo));
         }
       }
     });
@@ -576,7 +588,7 @@ export default function ProfileTab({
   };
 
   // Handle link bank simulation
-  const handleBankSubmit = (e: React.FormEvent) => {
+  const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bankAccount) return;
     const info = {
@@ -586,6 +598,32 @@ export default function ProfileTab({
     };
     setLinkedBank(info);
     localStorage.setItem('vinclub_linked_bank', JSON.stringify(info));
+
+    const uid = auth.currentUser?.uid || userId;
+    if (uid) {
+      if (uid.startsWith('local-user-')) {
+        const localUserStr = localStorage.getItem('vinclub_local_user');
+        if (localUserStr) {
+          const localUser = JSON.parse(localUserStr);
+          localUser.bankName = bankSelect;
+          localUser.bankAccount = bankAccount;
+          localUser.bankOwner = bankOwner.toUpperCase();
+          localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
+        }
+      } else {
+        try {
+          await updateDoc(doc(db, 'users', uid), {
+            bankName: bankSelect,
+            bankAccount: bankAccount,
+            bankOwner: bankOwner.toUpperCase(),
+            updatedAt: new Date().toISOString()
+          });
+        } catch (err) {
+          console.error("Lỗi khi lưu thông tin ngân hàng vào Firestore:", err);
+        }
+      }
+    }
+
     setBankSuccess(true);
     setTimeout(() => {
       setBankSuccess(false);
@@ -611,10 +649,35 @@ export default function ProfileTab({
     }
   };
 
-  const handleRemoveBank = () => {
+  const handleRemoveBank = async () => {
     if (window.confirm("Bạn có chắc chắn muốn gỡ liên kết tài khoản ngân hàng này?")) {
       setLinkedBank(null);
       localStorage.removeItem('vinclub_linked_bank');
+
+      const uid = auth.currentUser?.uid || userId;
+      if (uid) {
+        if (uid.startsWith('local-user-')) {
+          const localUserStr = localStorage.getItem('vinclub_local_user');
+          if (localUserStr) {
+            const localUser = JSON.parse(localUserStr);
+            delete localUser.bankName;
+            delete localUser.bankAccount;
+            delete localUser.bankOwner;
+            localStorage.setItem('vinclub_local_user', JSON.stringify(localUser));
+          }
+        } else {
+          try {
+            await updateDoc(doc(db, 'users', uid), {
+              bankName: "",
+              bankAccount: "",
+              bankOwner: "",
+              updatedAt: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error("Lỗi khi xóa ngân hàng trên Firestore:", err);
+          }
+        }
+      }
     }
   };
 

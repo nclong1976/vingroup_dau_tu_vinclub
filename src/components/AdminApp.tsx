@@ -1042,6 +1042,7 @@ function RegistrationAdmin() {
     try {
       await updateDoc(doc(db, 'users', id), { 
         points: newPoints,
+        balance: newPoints,
         updatedAt: new Date().toISOString()
       });
       console.log("Cập nhật số dư thành công!");
@@ -1095,6 +1096,7 @@ function RegistrationAdmin() {
         fullName: addFullName,
         contact: addContact,
         points: Number(addBalance) || 88800,
+        balance: Number(addBalance) || 88800,
         rank: addVipTier,
         memberId: newMemberId,
         photoUrl: addUserPhoto || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
@@ -1401,8 +1403,9 @@ function RegistrationAdmin() {
                           </div>
                           <div>
                             <div className="font-bold text-neutral-100 text-sm group-hover:text-[#e1b777] transition-colors">{u.fullName || 'Chưa cập nhật tên'}</div>
-                            <div className="text-[10px] text-neutral-400 font-mono mt-0.5">{u.contact || u.email || 'Không có sđt'}</div>
-                            <div className="text-[9px] text-neutral-500 font-mono mt-0.5">UID: {u.id}</div>
+                            <div className="text-[10px] text-neutral-400 font-mono mt-0.5">Liên hệ: <span className="font-bold text-neutral-300">{u.contact || u.email || 'Không có'}</span></div>
+                            <div className="text-[10px] text-neutral-400 font-mono mt-0.5">Mã Hội Viên: <span className="font-bold text-amber-400 font-sans">{u.memberId || 'N/A'}</span></div>
+                            <div className="text-[9px] text-neutral-500 font-mono mt-0.5">UID: {u.id} | Ngày Đăng Ký: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</div>
                           </div>
                         </div>
                       </td>
@@ -1962,23 +1965,68 @@ function RegistrationAdmin() {
 
             {/* Profile Info Summary */}
             <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 mb-6 text-xs space-y-2.5">
-              <div className="flex justify-between border-b border-neutral-800 pb-1.5">
-                <span className="text-neutral-400">Họ và tên ghi nhận:</span>
-                <span className="font-bold text-white">{viewingDocUser.fullName}</span>
+              <div className="grid grid-cols-2 gap-4 pb-2 border-b border-neutral-800">
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Họ và tên:</span>
+                  <span className="font-bold text-white text-sm">{viewingDocUser.fullName}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Mã số Hội viên:</span>
+                  <span className="font-bold text-amber-400 text-sm font-sans">{viewingDocUser.memberId || 'N/A'}</span>
+                </div>
               </div>
-              <div className="flex justify-between border-b border-neutral-800 pb-1.5">
-                <span className="text-neutral-400">Số thẻ căn cước (CCCD):</span>
-                <span className="font-mono font-bold text-[#e1b777]">{viewingDocUser.cccdNumber || 'N/A'}</span>
+
+              <div className="grid grid-cols-2 gap-4 pb-2 border-b border-neutral-800">
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Số điện thoại / Liên hệ:</span>
+                  <span className="font-bold text-white">{viewingDocUser.contact || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Ngày đăng ký:</span>
+                  <span className="font-bold text-white font-mono">{viewingDocUser.createdAt ? new Date(viewingDocUser.createdAt).toLocaleString('vi-VN') : 'N/A'}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Trạng thái xác thực tài khoản:</span>
-                <span className="font-bold">
-                  {viewingDocUser.isApproved ? (
-                    <span className="text-green-400">ĐÃ ĐƯỢC DUYỆT</span>
+
+              <div className="grid grid-cols-2 gap-4 pb-2 border-b border-neutral-800">
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Số CCCD / Hộ chiếu:</span>
+                  <span className="font-mono font-bold text-[#e1b777]">{viewingDocUser.cccdNumber || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Xác thực tài khoản:</span>
+                  <span className="font-bold">
+                    {viewingDocUser.isApproved ? (
+                      <span className="text-green-400">ĐÃ ĐƯỢC DUYỆT</span>
+                    ) : (
+                      <span className="text-amber-400">ĐANG CHỜ PHÊ DUYỆT</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pb-2 border-b border-neutral-800">
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Ngân hàng liên kết:</span>
+                  {viewingDocUser.bankName ? (
+                    <div className="font-bold text-white mt-0.5">
+                      <p>{viewingDocUser.bankName}</p>
+                      <p className="font-mono text-[#e1b777]">{viewingDocUser.bankAccount}</p>
+                      <p className="text-[10px] text-neutral-400">Chủ thẻ: {viewingDocUser.bankOwner}</p>
+                    </div>
                   ) : (
-                    <span className="text-amber-400">ĐANG CHỜ PHÊ DUYỆT</span>
+                    <span className="text-neutral-500 font-medium">Chưa liên kết</span>
                   )}
-                </span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 block mb-0.5">Chữ ký điện tử:</span>
+                  {viewingDocUser.signature_content ? (
+                    <div className="bg-white rounded-lg p-1.5 w-32 h-16 flex items-center justify-center overflow-hidden border border-neutral-700">
+                      <img src={viewingDocUser.signature_content} className="max-w-full max-h-full object-contain" alt="Chữ ký" />
+                    </div>
+                  ) : (
+                    <span className="text-neutral-500 font-medium">Chưa thiết lập</span>
+                  )}
+                </div>
               </div>
             </div>
 

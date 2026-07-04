@@ -89,38 +89,7 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
     return unsub;
   }, []);
 
-  // Intelligent luxury chatbot responder
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.sender === 'user') {
-      setIsTyping(true);
-      const timer = setTimeout(async () => {
-        setIsTyping(false);
-        let replyText = "Xin chào quý khách! VinClub Concierge đã nhận được tin nhắn của quý khách. Chuyên viên chăm sóc khách hàng VIP đang kiểm tra thông tin và sẽ phản hồi quý khách trong giây lát. Trân trọng cảm ơn quý hội viên!";
-        const userText = (lastMsg.text || "").toLowerCase();
-        
-        if (userText.includes("hạng") || userText.includes("vip")) {
-          replyText = "Dạ, để nâng hạng thành viên VIP tại VinClub và tận hưởng các đặc quyền đẳng cấp (voucher nghỉ dưỡng Vinpearl, nâng cấp phòng suite, ưu đãi mua xe VinFast,...), quý khách có thể tích lũy thêm điểm hoặc thực hiện nâng cấp trực tiếp qua mục 'Đặc Quyền VIP'. Chuyên viên CSKH cao cấp sẽ liên hệ trực tiếp hỗ trợ quý khách ngay bây giờ ạ.";
-        } else if (userText.includes("ưu đãi") || userText.includes("khuyến mãi")) {
-          replyText = "VinClub đang áp dụng chương trình ưu đãi độc quyền giảm tới 30% dịch vụ nghỉ dưỡng Vinpearl và ưu tiên nhận xe điện VinFast sớm cùng gói sạc pin miễn phí 2 năm. Quý khách vui lòng kiểm tra tab 'Đặc quyền VIP' hoặc cho tôi biết nhu cầu để hỗ trợ ngay ạ.";
-        } else if (userText.includes("tư vấn") || userText.includes("gặp")) {
-          replyText = "Dạ, yêu cầu kết nối với Chuyên viên tư vấn riêng của quý khách đã được thiết lập thành công. Chuyên viên Đỗ Thu Thảo sẽ gọi điện thoại hoặc nhắn tin trực tiếp hỗ trợ quý khách ngay bây giờ ạ.";
-        } else if (userText.includes("dự án") || userText.includes("bất động sản")) {
-          replyText = "Kính thưa quý khách, VinClub hiện đang giới thiệu quỹ căn biệt thự ngoại giao giới hạn tại Vinhomes Ocean Park 3 với chính sách đặc quyền dành riêng cho hội viên VIP. Tôi đã chuyển thông tin tới phòng kinh doanh dự án để gửi trọn bộ tài liệu chi tiết cho quý khách ạ.";
-        }
-        
-        await addDoc(collection(db, 'support_chat'), {
-          text: replyText,
-          sender: 'admin',
-          senderEmail: 'cskh@vinclub.vip',
-          userEmail: auth.currentUser?.email || 'Anonymous',
-          timestamp: Date.now()
-        });
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [messages]);
+
 
   const handleSendMessage = async () => {
     if (!typedText.trim()) return;

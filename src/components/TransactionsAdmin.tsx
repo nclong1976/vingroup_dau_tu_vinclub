@@ -79,6 +79,7 @@ export default function TransactionsAdmin() {
 
             transaction.update(userRef, { 
               points: newPoints,
+              balance: newPoints,
               cumulativeDeposits: newCumulative,
               rank: newTier,
               updatedAt: new Date().toISOString()
@@ -89,6 +90,7 @@ export default function TransactionsAdmin() {
             }
             transaction.update(userRef, { 
               points: currentPoints - tx.amount,
+              balance: currentPoints - tx.amount,
               updatedAt: new Date().toISOString()
             });
           }
