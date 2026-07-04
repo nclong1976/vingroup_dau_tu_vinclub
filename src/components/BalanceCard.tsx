@@ -10,7 +10,7 @@ interface BalanceCardProps {
   points?: number;
 }
 
-export default function BalanceCard({ userName, userPhoto, rank = "Titan", balance = 1250000, points = 88800 }: BalanceCardProps) {
+export default function BalanceCard({ userName, userPhoto, rank = "THÀNH VIÊN / MEMBER", balance = 0, points = 0 }: BalanceCardProps) {
   const [showBalance, setShowBalance] = useState(true);
   const formattedBalance = balance.toLocaleString();
   const formattedPoints = points.toLocaleString();
