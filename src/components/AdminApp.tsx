@@ -2382,6 +2382,180 @@ function ChatAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFile, setSelectedFile] = useState<{ base64: string; name: string; type: string } | null>(null);
   const [isSending, setIsSending] = useState(false);
+
+  // Canned Responses & User Profiles States
+  const [users, setUsers] = useState<any[]>([]);
+  const [savedResponses, setSavedResponses] = useState<any[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('Tất cả');
+  const [quickSearchQuery, setQuickSearchQuery] = useState<string>('');
+  const [autoSendCanned, setAutoSendCanned] = useState<boolean>(false);
+  
+  // CRUD Saved Responses modal states
+  const [showCannedCrudModal, setShowCannedCrudModal] = useState(false);
+  const [editResponseId, setEditResponseId] = useState<string | null>(null);
+  const [responseTitle, setResponseTitle] = useState('');
+  const [responseCategory, setResponseCategory] = useState('Chào hỏi');
+  const [responseContent, setResponseContent] = useState('');
+  const [responsePinned, setResponsePinned] = useState(false);
+
+  // Load users for profile variable interpolation
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'users'), (snap) => {
+      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsub;
+  }, []);
+
+  // Load and seed saved responses
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'saved_responses'), (snap) => {
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort pinned templates first, then by title
+      const sorted = (list as any[]).sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return (a.title || '').localeCompare(b.title || '');
+      });
+      setSavedResponses(sorted);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    // Seed default responses if Firestore has none
+    const checkAndSeed = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'saved_responses'));
+        if (snap.empty) {
+          const defaults = [
+            {
+              title: 'Chào hỏi - Khách VIP',
+              category: 'Chào hỏi',
+              content: 'Chào {customer_name}, tôi là {admin_name} - người hỗ trợ riêng thuộc hội viên {customer_level} VinClub. Tôi có thể hỗ trợ gì cho anh/chị ạ?',
+              pinned: true
+            },
+            {
+              title: 'Yêu cầu CCCD - Xác thực tài khoản',
+              category: 'Xác thực',
+              content: 'Để đảm bảo tính bảo mật và quyền lợi của tài khoản {customer_level}, vui lòng chụp ảnh CCCD rõ nét, không bị mờ hoặc mất góc để hệ thống tiến hành xác thực ngay cho anh/chị nhé.',
+              pinned: false
+            },
+            {
+              title: 'Thông báo - Đang xử lý giao dịch',
+              category: 'Giao dịch',
+              content: 'Yêu cầu giao dịch trị giá {amount} VNĐ của anh/chị đang được hệ thống xử lý. Tiến trình sẽ hoàn tất trong vòng {time_frame}. Vui lòng chờ trong giây lát.',
+              pinned: false
+            },
+            {
+              title: 'Cảm ơn - Kết thúc hỗ trợ',
+              category: 'Cảm ơn',
+              content: 'Yêu cầu của anh/chị {customer_name} đã được phê duyệt thành công. Cảm ơn anh/chị đã tin tưởng đồng hành cùng Quỹ đầu tư VinClub. Chúc anh/chị một ngày tốt lành!',
+              pinned: false
+            }
+          ];
+          for (let i = 0; i < defaults.length; i++) {
+            const id = `MSG_TEMPLATE_0${i + 1}`;
+            await setDoc(doc(db, 'saved_responses', id), {
+              id,
+              ...defaults[i]
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error seeding default saved responses:", err);
+      }
+    };
+    checkAndSeed();
+  }, []);
+
+  // Parse template placeholders using active customer details
+  const parseTemplate = (contentTemplate: string) => {
+    if (!contentTemplate) return "";
+    const activeCustomer = users.find(u => u.id === selectedUser);
+    
+    const customerName = activeCustomer?.fullName || activeCustomer?.displayName || "Quý khách";
+    const customerLevel = activeCustomer?.rank || "THÀNH VIÊN / MEMBER";
+    const adminName = "Trợ Lý VIP";
+    
+    // Simulate transaction values or read from active customer settings
+    const amount = activeCustomer?.balance ? (Number(activeCustomer.balance)).toLocaleString() : "250.000.000";
+    const transactionId = "TX-" + Math.floor(100000 + Math.random() * 900000);
+    const timeFrame = "3 - 5 phút";
+
+    return contentTemplate
+      .replace(/{customer_name}/g, customerName)
+      .replace(/{customer_level}/g, customerLevel)
+      .replace(/{admin_name}/g, adminName)
+      .replace(/{transaction_id}/g, transactionId)
+      .replace(/{amount}/g, amount)
+      .replace(/{time_frame}/g, timeFrame);
+  };
+
+  const handleCannedClick = async (templateText: string) => {
+    const parsedText = parseTemplate(templateText);
+    if (autoSendCanned) {
+      await handleQuickSend(parsedText);
+    } else {
+      setReplyText(parsedText);
+    }
+  };
+
+  // CRUD actions for canned replies
+  const handleSaveResponse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!responseTitle.trim() || !responseContent.trim()) return;
+
+    try {
+      if (editResponseId) {
+        // Update
+        await setDoc(doc(db, 'saved_responses', editResponseId), {
+          id: editResponseId,
+          title: responseTitle.trim(),
+          category: responseCategory,
+          content: responseContent.trim(),
+          pinned: responsePinned
+        });
+      } else {
+        // Create
+        const newId = 'MSG_CUSTOM_' + Date.now();
+        await setDoc(doc(db, 'saved_responses', newId), {
+          id: newId,
+          title: responseTitle.trim(),
+          category: responseCategory,
+          content: responseContent.trim(),
+          pinned: responsePinned
+        });
+      }
+      
+      // Reset form fields
+      setEditResponseId(null);
+      setResponseTitle('');
+      setResponseContent('');
+      setResponsePinned(false);
+      setShowCannedCrudModal(false);
+    } catch (err) {
+      console.error("Error saving response template:", err);
+    }
+  };
+
+  const handleEditResponseClick = (item: any) => {
+    setEditResponseId(item.id);
+    setResponseTitle(item.title);
+    setResponseCategory(item.category || 'Chào hỏi');
+    setResponseContent(item.content);
+    setResponsePinned(!!item.pinned);
+    setShowCannedCrudModal(true);
+  };
+
+  const handleDeleteResponse = async (id: string) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa tin nhắn mẫu này?")) {
+      try {
+        await deleteDoc(doc(db, 'saved_responses', id));
+      } catch (err) {
+        console.error("Error deleting response template:", err);
+      }
+    }
+  };
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -2585,6 +2759,18 @@ function ChatAdmin() {
     }
   };
 
+  const filteredCannedResponses = savedResponses.filter(item => {
+    if (activeCategory !== 'Tất cả' && item.category !== activeCategory) return false;
+    if (quickSearchQuery.trim()) {
+      const q = quickSearchQuery.toLowerCase();
+      return (
+        (item.title || '').toLowerCase().includes(q) ||
+        (item.content || '').toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
   const filteredUsersList = usersList.filter(u => 
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -2783,28 +2969,123 @@ function ChatAdmin() {
           )}
 
           {/* Canned Quick Responses Section */}
-          <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 flex flex-col gap-1.5 shrink-0 select-none">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block text-left">Tin nhắn soạn trước</span>
-            <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
-              {[
-                "Chào anh/chị, tôi là trợ lý VIP VinClub. Tôi có thể hỗ trợ gì cho anh/chị ạ?",
-                "Yêu cầu của anh/chị đã được phê duyệt thành công. Vui lòng kiểm tra lại tài khoản.",
-                "Vui lòng chụp ảnh CCCD rõ nét, không bị chói sáng hoặc mất góc để xác thực.",
-                "Giao dịch đang được xử lý. Hệ thống sẽ hoàn tất trong vòng 3 - 5 phút.",
-                "Cảm ơn anh/chị đã tin tưởng đồng hành cùng Quỹ đầu tư VinClub!"
-              ].map((msg, i) => (
+          <div className="px-6 py-3 bg-[#fbfbfe] border-t border-gray-200 flex flex-col gap-2 shrink-0 select-none">
+            {/* Header: Title, Search, Category Tabs, Settings, Quick Send Toggle */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest block text-left">Tin nhắn soạn trước</span>
+                
+                {/* Auto-Send Toggle Checkbox */}
+                <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-gray-500 hover:text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={autoSendCanned}
+                    onChange={(e) => setAutoSendCanned(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-[#b08953] focus:ring-[#b08953]"
+                  />
+                  <span>Gửi nhanh (1-click)</span>
+                </label>
+              </div>
+
+              {/* Search & Manage Buttons */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm tin nhắn mẫu..."
+                    value={quickSearchQuery}
+                    onChange={(e) => setQuickSearchQuery(e.target.value)}
+                    className="pl-8 pr-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#b08953] w-44"
+                  />
+                  {quickSearchQuery && (
+                    <button
+                      onClick={() => setQuickSearchQuery("")}
+                      className="absolute right-2 top-2 text-gray-400 hover:text-gray-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
                 <button
-                  key={i}
                   type="button"
-                  onClick={() => handleQuickSend(msg)}
-                  disabled={isSending}
-                  className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-[#b08953] hover:text-[#b08953] text-gray-700 text-xs font-semibold rounded-full whitespace-nowrap transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                  onClick={() => {
+                    setEditResponseId(null);
+                    setResponseTitle('');
+                    setResponseContent('');
+                    setResponsePinned(false);
+                    setShowCannedCrudModal(true);
+                  }}
+                  className="p-1.5 border border-gray-200 hover:border-[#b08953] hover:text-[#b08953] text-gray-500 bg-white rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold active:scale-95 shrink-0"
                 >
-                  {msg}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Thêm mẫu</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Category Tabs Row */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1.5 border-b border-gray-100 scrollbar-none">
+              {['Tất cả', 'Chào hỏi', 'Xác thực', 'Giao dịch', 'Cảm ơn'].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${
+                    activeCategory === cat
+                      ? 'bg-[#b08953] text-white'
+                      : 'bg-white border border-gray-100 hover:bg-gray-50 text-gray-600'
+                  }`}
+                >
+                  {cat}
                 </button>
               ))}
             </div>
+
+            {/* Quick replies items row */}
+            <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+              {filteredCannedResponses.length === 0 ? (
+                <span className="text-xs text-gray-400 italic py-1">Không tìm thấy tin nhắn mẫu nào phù hợp.</span>
+              ) : (
+                filteredCannedResponses.map((item) => (
+                  <div key={item.id} className="relative group/canned shrink-0 flex items-center bg-white border border-gray-100 hover:border-[#b08953]/50 rounded-xl pl-3 pr-2.5 py-1.5 shadow-sm transition-all">
+                    {/* Main content button */}
+                    <button
+                      type="button"
+                      onClick={() => handleCannedClick(item.content)}
+                      className="text-left text-xs font-semibold text-gray-700 hover:text-[#b08953] transition-colors pr-2 flex items-center gap-1"
+                      title={item.content}
+                    >
+                      {item.pinned && <Star className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />}
+                      <span className="max-w-[140px] truncate">{item.title}</span>
+                    </button>
+
+                    {/* Manage actions (Edit / Delete) inside quick reply badge */}
+                    <div className="flex items-center gap-1 border-l border-gray-100 pl-1.5 ml-0.5 opacity-60 hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleEditResponseClick(item)}
+                        className="text-gray-400 hover:text-blue-500 p-0.5 rounded transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteResponse(item.id)}
+                        className="text-gray-400 hover:text-red-500 p-0.5 rounded transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
+
 
           {/* Input Footer */}
           <div className="p-4 bg-white border-t border-gray-200 flex items-center gap-3 shrink-0">
@@ -2852,6 +3133,110 @@ function ChatAdmin() {
           <User className="w-16 h-16 mb-2 stroke-[1.1] text-gray-300" />
           <h3 className="text-lg font-bold">Chưa chọn hội thoại</h3>
           <p className="text-sm max-w-sm text-center mt-1">Vui lòng chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu tư vấn hỗ trợ VIP.</p>
+        </div>
+      )}
+
+      {/* Canned Responses CRUD Modal */}
+      {showCannedCrudModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-[#121215] border border-neutral-800 w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-neutral-800 flex justify-between items-center bg-[#18181c]">
+              <h3 className="text-sm font-black text-[#e1b777] uppercase tracking-widest font-serif flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                <span>{editResponseId ? 'Sửa tin nhắn mẫu' : 'Thêm tin nhắn mẫu mới'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCannedCrudModal(false)}
+                className="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-400 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveResponse} className="flex-1 overflow-y-auto p-6 space-y-4 text-left">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1.5">Tiêu đề gợi nhớ</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Chào hỏi - Khách VIP"
+                  value={responseTitle}
+                  onChange={(e) => setResponseTitle(e.target.value)}
+                  className="w-full bg-[#1c1c24] border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-neutral-200 focus:outline-none focus:border-[#e1b777]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1.5">Danh mục</label>
+                  <select
+                    value={responseCategory}
+                    onChange={(e) => setResponseCategory(e.target.value)}
+                    className="w-full bg-[#1c1c24] border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-neutral-200 focus:outline-none focus:border-[#e1b777] cursor-pointer"
+                  >
+                    <option value="Chào hỏi">Chào hỏi</option>
+                    <option value="Xác thực">Xác thực</option>
+                    <option value="Giao dịch">Giao dịch</option>
+                    <option value="Cảm ơn">Cảm ơn</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+
+                <div className="flex items-end pb-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-neutral-300 select-none">
+                    <input
+                      type="checkbox"
+                      checked={responsePinned}
+                      onChange={(e) => setResponsePinned(e.target.checked)}
+                      className="w-4 h-4 rounded border-neutral-800 text-[#e1b777] bg-[#1c1c24] focus:ring-offset-0 focus:ring-[#e1b777]"
+                    />
+                    <span>Ghim lên đầu danh sách</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Nội dung tin nhắn mẫu</label>
+                <span className="block text-[10px] text-neutral-500 mb-2 leading-relaxed">
+                  Bạn có thể sử dụng các biến tự động: 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{customer_name}`}</code>, 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{customer_level}`}</code>, 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{admin_name}`}</code>, 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{transaction_id}`}</code>, 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{amount}`}</code>, 
+                  <code className="text-[#e1b777] bg-black/35 px-1 py-0.5 rounded mx-1">{`{time_frame}`}</code>
+                </span>
+                <textarea
+                  required
+                  rows={5}
+                  placeholder="Ví dụ: Chào {customer_name}, tôi là {admin_name}. Hạng VIP của anh/chị là {customer_level}..."
+                  value={responseContent}
+                  onChange={(e) => setResponseContent(e.target.value)}
+                  className="w-full bg-[#1c1c24] border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs font-medium text-[#e0e0e0] focus:outline-none focus:border-[#e1b777] leading-relaxed"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 justify-end pt-3 border-t border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCannedCrudModal(false)}
+                  className="px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs rounded-xl transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#e1b777] to-[#b08953] hover:brightness-110 text-neutral-950 font-black text-xs rounded-xl shadow-lg transition-all"
+                >
+                  {editResponseId ? 'Cập nhật' : 'Tạo mới'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
