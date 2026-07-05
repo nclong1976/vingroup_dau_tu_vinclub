@@ -755,28 +755,91 @@ function ProjectsAdmin() {
           </button>
         </div>
       ) : (
-        <div className="w-full space-y-4">
-          <div className="flex justify-end gap-2 px-4">
-            <button 
-              onClick={() => setIsDeckOpen(true)}
-              className="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-200 transition-all"
-            >
-              Mở tất cả
-            </button>
-            <button 
-              onClick={() => setIsDeckOpen(false)}
-              className="px-4 py-2 bg-neutral-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-900 transition-all"
-            >
-              Đóng tất cả
-            </button>
-          </div>
-          <ProjectStackedDeck 
-            projects={filteredProjects}
-            onEdit={handleOpenEditModal}
-            onToggleStatus={handleToggleStatus}
-            onDelete={handleDelete}
-            isOpen={isDeckOpen}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full pb-10">
+          {filteredProjects.map((proj) => (
+            <div key={proj.id} className="bg-[#121215] border border-neutral-800 rounded-2xl overflow-hidden flex flex-col justify-between hover:border-[#e1b777]/30 transition-all duration-300 shadow-xl group">
+              {/* Banner/Image */}
+              <div className="h-40 w-full relative overflow-hidden bg-neutral-900">
+                {proj.imageUrl ? (
+                  <img src={proj.imageUrl} alt={proj.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full bg-[#1c1c22] flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-neutral-700 animate-pulse" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#121215] via-transparent to-transparent" />
+                
+                {/* Badge Category & Status */}
+                <div className="absolute top-3 left-3 flex gap-2">
+                  <span className="text-[8px] font-black text-white uppercase tracking-widest bg-black/60 backdrop-blur-md px-2 py-0.5 rounded border border-white/10">
+                    {proj.category || 'Hạng mục'}
+                  </span>
+                  <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
+                    proj.status === 'active' 
+                      ? 'bg-[#102a1e] text-[#4ade80] border-emerald-500/20' 
+                      : 'bg-[#2a1014] text-[#f87171] border-rose-500/20'
+                  }`}>
+                    {proj.status === 'active' ? 'Đang mở' : 'Đã đóng'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Body */}
+              <div className="p-5 flex-1 flex flex-col justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-white line-clamp-2 leading-snug mb-2 group-hover:text-[#e1b777] transition-colors" title={proj.name}>
+                    {proj.name}
+                  </h4>
+                  {proj.customId && (
+                    <span className="text-[9px] text-neutral-500 font-mono tracking-widest block mb-3">ID: {proj.customId}</span>
+                  )}
+                  
+                  {/* Key metrics grid */}
+                  <div className="grid grid-cols-3 gap-1 bg-[#18181c] p-2.5 rounded-xl border border-neutral-800 text-center">
+                    <div>
+                      <p className="text-[8px] text-neutral-500 font-black uppercase tracking-wider">Lãi suất</p>
+                      <p className="text-[10px] text-[#e1b777] font-black font-mono mt-0.5">{proj.interestRate || '1.10 %'}</p>
+                    </div>
+                    <div className="border-x border-neutral-800/80">
+                      <p className="text-[8px] text-neutral-500 font-black uppercase tracking-wider">Kỳ hạn</p>
+                      <p className="text-[10px] text-[#e1b777] font-black font-mono mt-0.5">{proj.duration || '7200 phút'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-neutral-500 font-black uppercase tracking-wider">Tối thiểu</p>
+                      <p className="text-[10px] text-[#e1b777] font-black font-mono mt-0.5 truncate px-0.5" title={proj.minInvestment}>{proj.minInvestment || '5.000.000 đ'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions row */}
+                <div className="flex gap-2 pt-2 border-t border-neutral-900/60 mt-auto">
+                  <button 
+                    onClick={() => handleToggleStatus(proj)}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                      proj.status === 'active'
+                        ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    {proj.status === 'active' ? '🔒 Đóng' : '🔓 Mở'}
+                  </button>
+                  <button 
+                    onClick={() => handleOpenEditModal(proj)}
+                    className="flex-1 py-2 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                  >
+                    ✏️ Sửa
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(proj.id)}
+                    className="px-2.5 py-2 bg-red-950/20 border border-red-900/20 hover:bg-red-900/30 text-red-400 hover:text-red-300 rounded-lg transition-all cursor-pointer"
+                    title="Xóa dự án"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
