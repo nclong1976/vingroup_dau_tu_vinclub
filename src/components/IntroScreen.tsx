@@ -550,11 +550,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       )}
 
       {/* Main Form Content Area */}
-      <main className="relative z-10 flex-grow flex flex-col justify-end pb-12 pt-8 px-6 w-full max-w-md mx-auto overflow-y-auto">
-        {/* Intro Video */}
-        <div className="w-full h-auto mb-6">
-          <video src="/intro.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover rounded-lg" />
-        </div>
+      <main className="relative z-10 flex-grow flex flex-col justify-center py-6 px-4 w-full max-w-sm mx-auto overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: LOGIN SCREEN */}
@@ -565,10 +561,20 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col gap-6"
+              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
             >
+              <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
+                <video 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
               <div className="text-center">
-                <h1 className="text-[19px] font-semibold text-white tracking-wide leading-snug">
+                <h1 className="text-[17px] font-semibold text-white tracking-wide leading-snug">
                   Truy cập bằng số điện thoại hoặc email
                 </h1>
               </div>
@@ -626,19 +632,26 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-300"
+              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
             >
+              <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
+                <video 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
               <div className="text-center flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-1 text-amber-500 animate-pulse">
-                  <KeyRound className="w-6 h-6" />
-                </div>
-                <h1 className="text-[19px] font-semibold text-white tracking-wide leading-snug">
+                <h1 className="text-[17px] font-semibold text-white tracking-wide leading-snug">
                   Xác thực mã bảo mật OTP
                 </h1>
-                <p className="text-xs text-stone-400 max-w-xs leading-relaxed">
-                  Hệ thống đã gửi một mã OTP gồm 6 chữ số tới thông tin liên hệ của quý khách:
+                <p className="text-[11px] text-stone-400 max-w-xs leading-relaxed">
+                  Hệ thống đã gửi mã OTP tới liên hệ của quý khách:
                 </p>
-                <span className="text-sm font-semibold text-amber-500 font-mono tracking-wider bg-amber-950/40 px-3 py-1 border border-amber-500/20 rounded-full">
+                <span className="text-xs font-semibold text-amber-500 font-mono tracking-wider bg-amber-950/40 px-3 py-1 border border-amber-500/20 rounded-full">
                   {loginContact}
                 </span>
               </div>
@@ -710,10 +723,20 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col gap-6"
+              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
             >
+              <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
+                <video 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white font-display text-center">
+                <h1 className="text-[17px] font-semibold text-white tracking-wide leading-snug text-center">
                   Tạo tài khoản mới
                 </h1>
               </div>
@@ -910,7 +933,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col gap-6"
+              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
             >
               {!previewUrl && !useCamera && (
                 <div className="flex flex-col gap-5 text-center">
