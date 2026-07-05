@@ -151,7 +151,7 @@ export default function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState<number>(0);
   const [balance, setBalance] = useState<number>(0);
-  const [rank, setRank] = useState<string>("THÀNH VIÊN / MEMBER");
+  const [rank, setRank] = useState<string>("THÀNH VIÊN");
   const [memberId, setMemberId] = useState<string>("");
   const [userData, setUserData] = useState<any>(null);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string; project?: any } | null>(null);
@@ -709,7 +709,7 @@ export default function App() {
     setPoints(0);
     setBalance(0);
     setUserData(null);
-    setRank("THÀNH VIÊN / MEMBER");
+    setRank("THÀNH VIÊN");
     setMemberId("");
     setActiveTab('home');
     setSearchQuery('');
@@ -719,13 +719,13 @@ export default function App() {
     setPoints(newPoints);
     
     // Tier upgrade logic
-    let newRank = "THÀNH VIÊN / MEMBER";
+    let newRank = "THÀNH VIÊN";
     if (newPoints >= 10000000000) {
-      newRank = "KIM CƯƠNG / DIAMOND";
+      newRank = "HẠNG KIM CƯƠNG";
     } else if (newPoints >= 5000000000) {
-      newRank = "BẠCH KIM / PLATINUM";
+      newRank = "HẠNG BẠCH KIM";
     } else if (newPoints >= 1000000000) {
-      newRank = "VÀNG / GOLD";
+      newRank = "HẠNG VÀNG";
     }
     setRank(newRank);
     
@@ -1143,30 +1143,13 @@ export default function App() {
                     selectedCard={selectedCard}
                   />
 
-                  {/* FLOATING BUTTON: HẠNG MỤC ĐẦU TƯ (ANCHORED RIGHT EDGE) */}
+                  {/* FLOATING BUTTON: HẠNG MỤC ĐẦU TƯ (ANCHORED RIGHT EDGE, ONLY ICON) */}
                   <button 
                     onClick={() => setAppView('all-projects')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-gradient-to-b from-[#1c1c1f]/95 to-[#0d0d0f]/95 backdrop-blur-xl border border-r-0 border-[#e1b777]/35 rounded-l-2xl py-4.5 px-2 flex flex-col items-center gap-2.5 shadow-[0_4px_25px_rgba(245,158,11,0.2)] active:scale-95 transition-all group cursor-pointer"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-gradient-to-b from-[#1c1c1f]/95 to-[#0d0d0f]/95 backdrop-blur-xl border border-r-0 border-[#e1b777]/35 rounded-l-2xl p-2.5 flex items-center justify-center shadow-[0_4px_25px_rgba(245,158,11,0.25)] active:scale-95 transition-all group cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/20 transition-all shrink-0">
-                      <Briefcase className="w-3.5 h-3.5 text-amber-400" />
-                    </div>
-                    <div className="flex flex-col items-center text-[9px] font-black tracking-widest text-amber-400 gap-0.5 leading-none">
-                      <span>H</span>
-                      <span>Ạ</span>
-                      <span>N</span>
-                      <span>G</span>
-                      <span className="h-0.5"></span>
-                      <span>M</span>
-                      <span>Ụ</span>
-                      <span>C</span>
-                      <span className="h-1"></span>
-                      <span className="text-stone-300">Đ</span>
-                      <span className="text-stone-300">Ầ</span>
-                      <span className="text-stone-300">U</span>
-                      <span className="h-0.5"></span>
-                      <span className="text-stone-300">T</span>
-                      <span className="text-stone-300">Ư</span>
+                    <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/20 transition-all shrink-0">
+                      <Briefcase className="w-4 h-4 text-amber-400" />
                     </div>
                   </button>
                 </motion.div>

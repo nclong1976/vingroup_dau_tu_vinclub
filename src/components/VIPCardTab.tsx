@@ -15,7 +15,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
   // Luxury banking tier configurations using provided image assets
   const tierConfig = {
     MEMBER: {
-      name: 'THÀNH VIÊN / MEMBER',
+      name: 'THÀNH VIÊN',
       imageUrl: 'https://statics.vinpearl.com/vinclub-member_1723049424.png',
       backBg: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 50%, #d1d5db 100%)',
       borderColor: 'border-slate-300',
@@ -33,7 +33,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
       exclusiveQuote: 'Bắt đầu hành trình tinh hoa cùng hệ sinh thái VinClub.'
     },
     GOLD: {
-      name: 'VÀNG / GOLD',
+      name: 'HẠNG VÀNG',
       imageUrl: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcS42YT1prXcaoupJMGpoUAj7d1BVNTrGId7YctH4Yk190Zf6fU_',
       backBg: 'linear-gradient(135deg, #fef08a 0%, #fef9c3 50%, #fde047 100%)',
       borderColor: 'border-yellow-400/50',
@@ -52,7 +52,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
       exclusiveQuote: 'Khẳng định vị thế, trải nghiệm phong vị thượng lưu.'
     },
     PLATINUM: {
-      name: 'BẠCH KIM / PLATINUM',
+      name: 'HẠNG BẠCH KIM',
       imageUrl: 'https://statics.vinpearl.com/vinclub-platinum_1723049468.png',
       backBg: 'linear-gradient(135deg, #cbd5e1 0%, #e2e8f0 50%, #94a3b8 100%)',
       borderColor: 'border-cyan-500/40',
@@ -71,7 +71,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
       exclusiveQuote: 'Đặc quyền vượt trội, nâng tầm phong cách sống.'
     },
     DIAMOND: {
-      name: 'KIM CƯƠNG / DIAMOND',
+      name: 'HẠNG KIM CƯƠNG',
       imageUrl: 'https://statics.vinpearl.com/vinclub-diamond_1723049663.png',
       backBg: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #0c0a09 100%)',
       borderColor: 'border-amber-500/50',

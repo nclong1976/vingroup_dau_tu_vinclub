@@ -196,7 +196,7 @@ export default function DepositModal({ isOpen, onClose, userName, userId, onComp
                   <p className="text-[#12347a]/95">Hai bên thống nhất ký kết hợp đồng nạp vốn đầu tư với các điều khoản sau:</p>
                   
                   <ul className="list-decimal pl-5 space-y-2 text-[#12347a]/95">
-                    <li>Bên A đồng ý nạp số tiền <strong className="text-[#1034a6] bg-[#1034a6]/5 px-1 rounded border border-[#1034a6]/15">{formatVND(amount)}</strong> vào hệ thống thông qua phương thức <strong className="text-[#0f2b5c]">{method.toUpperCase()}</strong>.</li>
+                    <li>Bên A đồng ý nạp số tiền <strong className="text-[#1034a6] bg-[#1034a6]/5 px-1 rounded border border-[#1034a6]/15">{formatVND(amount)}</strong> vào hệ thống thông qua phương thức <strong className="text-[#0f2b5c]">{method === 'bank' ? 'NGÂN HÀNG' : method.toUpperCase()}</strong>.</li>
                     <li>Bên B cam kết sử dụng số tiền nạp để cộng vào số dư tài khoản của Bên A ngay sau khi giao dịch được xác nhận hợp lệ.</li>
                     <li>Bên A cam đoan số tiền nạp là hoàn toàn hợp pháp và chịu mọi trách nhiệm trước pháp luật về nguồn gốc số tiền.</li>
                     <li>Hợp đồng này có giá trị pháp lý dưới dạng điện tử, chữ ký điện tử của Bên A là bằng chứng xác nhận sự đồng ý với các điều khoản.</li>

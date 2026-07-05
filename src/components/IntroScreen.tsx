@@ -474,28 +474,33 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             animate={{ y: 20, x: "-50%", opacity: 1 }}
             exit={{ y: -120, x: "-50%", opacity: 0 }}
             transition={{ type: "spring", damping: 18, stiffness: 120 }}
-            className="absolute top-0 left-1/2 z-50 w-[90%] max-w-sm"
+            className="absolute top-0 left-1/2 z-50 w-[92%] max-w-sm cursor-pointer animate-in fade-in slide-in-from-top-4 duration-300"
+            onClick={() => setShowOtpAlert(false)}
           >
-            <div className="bg-neutral-900/95 border-2 border-amber-500/60 rounded-xl p-4 shadow-[0_10px_30px_rgba(245,158,11,0.3)] backdrop-blur-md flex flex-col gap-2 text-stone-200">
-              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-widest uppercase">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <Bell className="w-3.5 h-3.5 animate-bounce" />
-                  VINCLUB SECURITY SMS
+            <div className="bg-[#e4ece5]/92 backdrop-blur-2xl border border-white/40 rounded-[22px] p-4.5 shadow-[0_12px_35px_rgba(0,0,0,0.15)] flex flex-col gap-2.5 text-[#1c1c1e] font-sans">
+              {/* Header */}
+              <div className="flex items-center justify-between text-[11px] text-[#6e6e73] font-medium leading-none">
+                <div className="flex items-center gap-2">
+                  {/* Messages Icon (speech bubble inside green circle) */}
+                  <div className="w-5.5 h-5.5 rounded-full bg-[#34c759] flex items-center justify-center shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white fill-current">
+                      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                    </svg>
+                  </div>
+                  <span className="uppercase tracking-[0.12em] text-[10px] font-black text-[#5e5e63]">TIN NHẮN</span>
                 </div>
-                <button
-                  onClick={() => setShowOtpAlert(false)}
-                  className="text-stone-500 hover:text-white text-xs cursor-pointer font-bold px-1.5 py-0.5 rounded hover:bg-white/5 transition-all"
-                >
-                  X
-                </button>
+                <span className="text-[10px] text-[#8e8e93] font-semibold">bây giờ</span>
               </div>
-              <div className="text-xs leading-relaxed font-normal">
-                Mã xác thực OTP đăng nhập dịch vụ của Quý khách là:{' '}
-                <span className="text-sm font-black text-amber-400 font-mono bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded inline-block animate-pulse">
-                  {otpCode}
-                </span>
-                . Vui lòng nhập mã này trên màn hình để xác nhận quyền truy cập tài khoản VIP.
+              {/* Body */}
+              <div className="flex flex-col gap-1 text-[13.5px] leading-relaxed">
+                <span className="font-extrabold text-[#1c1c1e] text-[14.5px] tracking-tight">VINCLUB Security</span>
+                <p className="text-[#2c2c2e] font-normal font-sans text-[13.5px]">
+                  Mã xác thực OTP đăng nhập dịch vụ của Quý khách là:{" "}
+                  <span className="font-black text-[#1c1c1e] font-mono text-[14.5px] px-1 bg-black/5 rounded">
+                    {otpCode}
+                  </span>
+                  . Vui lòng nhập mã này trên màn hình để xác nhận quyền truy cập tài khoản VIP.
+                </p>
               </div>
             </div>
           </motion.div>

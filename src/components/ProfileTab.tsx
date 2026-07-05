@@ -1625,7 +1625,7 @@ export default function ProfileTab({
                         className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all cursor-pointer ${depositMethod === 'bank' ? 'bg-[#96784d]/10 border-[#96784d] text-[#96784d]' : 'bg-neutral-50 border-neutral-200 text-neutral-400'}`}
                       >
                         <Building2 className="w-5 h-5 mb-1" />
-                        <span className="text-[9px] font-bold uppercase tracking-wider">BANK</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider">NGÂN HÀNG</span>
                       </button>
 
                       <button
