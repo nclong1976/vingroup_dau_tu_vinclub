@@ -4,7 +4,9 @@ import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import admin from "firebase-admin";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import firebaseConfig from "../firebase-applet-config.json" assert { type: "json" };
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const firebaseConfig = require("../firebase-applet-config.json");
 
 import dotenv from "dotenv";
 import { initializeApp as initializeClientApp } from "firebase/app";
