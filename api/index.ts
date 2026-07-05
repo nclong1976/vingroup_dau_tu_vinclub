@@ -5,6 +5,15 @@ import { GoogleGenAI } from "@google/genai";
 import admin from "firebase-admin";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
+import dotenv from "dotenv";
+import { initializeApp as initializeClientApp } from "firebase/app";
+import { getFirestore as getClientFirestore, doc, setDoc, getDoc, addDoc, collection } from "firebase/firestore";
+
+dotenv.config();
+
+const clientApp = initializeClientApp(firebaseConfig);
+const dbClient = getClientFirestore(clientApp);
+
 
 // Initialize Firebase Admin
 admin.initializeApp({
@@ -580,8 +589,213 @@ app.get('/api/video-download', async (req, res) => {
   }
 });
 
+// ==========================================
+// TELEGRAM BOT INTEGRATION ENDPOINTS
+// ==========================================
+
+// Endpoint to send/forward client message to Telegram Bot
+app.post("/api/telegram/send", async (req, res) => {
+  try {
+    const { text, userId, userName, userEmail, fileUrl, fileName, fileType } = req.body;
+    console.log(`[Telegram Send] Receiving message from user ${userName} (${userId}): ${text}`);
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      console.warn("Telegram Bot Token or Chat ID is not configured.");
+      return res.status(500).json({ error: "Telegram is not configured on the server." });
+    }
+
+    const cleanText = (text || "").replace(/<[^>]*>/g, ""); // Strip any HTML tags to prevent HTML injection errors
+    const messageText = `🔔 <b>Khách hàng:</b> ${userName || "Nhà Đầu Tư"}\n🆔 <b>ID:</b> <code>${userId}</code>\n📧 <b>Email:</b> ${userEmail || "Anonymous"}\n💬 <b>Tin nhắn:</b> ${cleanText}`;
+
+    let telegramMsgId: number | null = null;
+
+    if (fileUrl && fileUrl.startsWith("data:image/")) {
+      // It's a base64 image!
+      const base64Data = fileUrl.split(",")[1];
+      const buffer = Buffer.from(base64Data, "base64");
+      
+      const formData = new FormData();
+      formData.append("chat_id", chatId);
+      formData.append("caption", messageText);
+      formData.append("parse_mode", "HTML");
+      
+      const blob = new Blob([buffer], { type: fileType || "image/jpeg" });
+      formData.append("photo", blob, fileName || "photo.jpg");
+
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        telegramMsgId = resData.result.message_id;
+      } else {
+        const errText = await response.text();
+        console.error("Failed to send photo to Telegram:", errText);
+        return res.status(500).json({ error: "Failed to send photo to Telegram: " + errText });
+      }
+    } else {
+      // Send regular text message
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: messageText,
+          parse_mode: "HTML",
+        }),
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        telegramMsgId = resData.result.message_id;
+      } else {
+        const errText = await response.text();
+        console.error("Failed to send message to Telegram:", errText);
+        return res.status(500).json({ error: "Failed to send message to Telegram: " + errText });
+      }
+    }
+
+    if (telegramMsgId) {
+      // Save the mapping to Firestore using client SDK
+      await setDoc(doc(dbClient, "telegram_messages", String(telegramMsgId)), {
+        userId,
+        userName: userName || "Nhà Đầu Tư",
+        userEmail: userEmail || "Anonymous",
+        createdAt: new Date(),
+      });
+      return res.json({ success: true, telegramMessageId: telegramMsgId });
+    }
+
+    res.status(500).json({ error: "Failed to obtain Telegram message ID" });
+  } catch (error: any) {
+    console.error("Error in /api/telegram/send:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Telegram webhook endpoint
+app.post("/api/telegram/webhook", async (req, res) => {
+  try {
+    const secretHeader = req.headers["x-telegram-bot-api-secret-token"];
+    const secretToken = process.env.TELEGRAM_SECRET_TOKEN;
+
+    if (secretToken && secretHeader !== secretToken) {
+      console.warn("Unauthorized webhook request");
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const update = req.body;
+    if (!update || !update.message) {
+      return res.json({ success: true });
+    }
+
+    const { message } = update;
+    const replyTo = message.reply_to_message;
+
+    if (replyTo) {
+      const origMessageId = replyTo.message_id;
+      
+      // Look up mapping in Firestore using client SDK
+      const msgDoc = await getDoc(doc(dbClient, "telegram_messages", String(origMessageId)));
+      
+      if (msgDoc.exists()) {
+        const mapping = msgDoc.data();
+        const userId = mapping?.userId;
+        const userEmail = mapping?.userEmail || "Anonymous";
+        
+        if (userId) {
+          let text = message.text || "";
+          let fileUrl = "";
+          let fileType = "";
+          let fileName = "";
+          
+          // Handle photo sent by admin from Telegram
+          if (message.photo && message.photo.length > 0) {
+            const photo = message.photo[message.photo.length - 1];
+            const fileId = photo.file_id;
+            
+            const fileInfoRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+            if (fileInfoRes.ok) {
+              const fileInfo = await fileInfoRes.json();
+              const filePath = fileInfo.result.file_path;
+              
+              const photoDownloadUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${filePath}`;
+              const fileRes = await fetch(photoDownloadUrl);
+              if (fileRes.ok) {
+                const arrayBuffer = await fileRes.arrayBuffer();
+                const base64Data = Buffer.from(arrayBuffer).toString("base64");
+                fileUrl = `data:image/jpeg;base64,${base64Data}`;
+                fileType = "image/jpeg";
+                fileName = "photo.jpg";
+              }
+            }
+            if (message.caption) {
+              text = message.caption;
+            }
+          }
+
+          // Add to support_chat collection using client SDK
+          await addDoc(collection(dbClient, "support_chat"), {
+            text,
+            sender: "admin",
+            senderEmail: "admin@vinclub.com",
+            userEmail: userEmail,
+            userId: userId,
+            userName: "CSKH VinClub",
+            timestamp: Date.now(),
+            ...(fileUrl ? { fileUrl, fileType, fileName } : {})
+          });
+          
+          console.log(`Successfully forwarded Telegram reply to user ${userId}`);
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Error in Telegram webhook:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Utility endpoint to easily set up Telegram Webhook
+app.get("/api/telegram/setup-webhook", async (req, res) => {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const appUrl = process.env.APP_URL;
+    const secretToken = process.env.TELEGRAM_SECRET_TOKEN || "vinclub_tg_secret";
+
+    if (!botToken || !appUrl) {
+      return res.status(400).json({ error: "Missing TELEGRAM_BOT_TOKEN or APP_URL in environment." });
+    }
+
+    const webhookUrl = `${appUrl}/api/telegram/webhook`;
+    const setWebhookUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${secretToken}`;
+
+    const response = await fetch(setWebhookUrl);
+    const result = await response.json();
+
+    return res.json({
+      success: result.ok,
+      telegramResponse: result,
+      webhookUrl,
+    });
+  } catch (error: any) {
+    console.error("Error setting up Telegram webhook:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Vite middleware for development and static assets for production (only when running locally)
 async function bootstrap() {
+
   if (!process.env.VERCEL) {
     const PORT = 3000;
     if (process.env.NODE_ENV !== "production") {

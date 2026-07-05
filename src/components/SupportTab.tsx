@@ -101,6 +101,7 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
     
     const uid = auth.currentUser?.uid || userId || 'Anonymous';
     const email = auth.currentUser?.email || 'Anonymous';
+    const name = userName || 'Nhà Đầu Tư';
 
     await addDoc(collection(db, 'support_chat'), {
       text,
@@ -108,9 +109,26 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
       senderEmail: email,
       userEmail: email,
       userId: uid,
-      userName: userName || 'Nhà Đầu Tư',
+      userName: name,
       timestamp: Date.now()
     });
+
+    try {
+      fetch('/api/telegram/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          userId: uid,
+          userName: name,
+          userEmail: email,
+        }),
+      });
+    } catch (err) {
+      console.error('Error forwarding message to Telegram:', err);
+    }
   };
 
   const handleAttachmentClick = () => {
@@ -126,6 +144,7 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
       const base64String = reader.result as string;
       const uid = auth.currentUser?.uid || userId || 'Anonymous';
       const email = auth.currentUser?.email || 'Anonymous';
+      const name = userName || 'Nhà Đầu Tư';
 
       await addDoc(collection(db, 'support_chat'), {
         text: '',
@@ -133,12 +152,32 @@ export default function SupportTab({ userName, userId, initialMessage, onClearIn
         senderEmail: email,
         userEmail: email,
         userId: uid,
-        userName: userName || 'Nhà Đầu Tư',
+        userName: name,
         timestamp: Date.now(),
         fileUrl: base64String,
         fileType: file.type,
         fileName: file.name
       });
+
+      try {
+        fetch('/api/telegram/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: `[Gửi hình ảnh: ${file.name}]`,
+            userId: uid,
+            userName: name,
+            userEmail: email,
+            fileUrl: base64String,
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+      } catch (err) {
+        console.error('Error forwarding file to Telegram:', err);
+      }
     };
     reader.readAsDataURL(file);
   };
