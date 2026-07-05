@@ -34,7 +34,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
     },
     GOLD: {
       name: 'VÀNG / GOLD',
-      imageUrl: 'https://storage.googleapis.com/loyalty-public-arczn36dnada/240807164237_previous_photo_card_24fedc53-f059-407e-ac30-e3f7baf0fca7.jpg',
+      imageUrl: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcS42YT1prXcaoupJMGpoUAj7d1BVNTrGId7YctH4Yk190Zf6fU_',
       backBg: 'linear-gradient(135deg, #fef08a 0%, #fef9c3 50%, #fde047 100%)',
       borderColor: 'border-yellow-400/50',
       textColor: 'text-yellow-600',
@@ -53,7 +53,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
     },
     PLATINUM: {
       name: 'BẠCH KIM / PLATINUM',
-      imageUrl: 'https://storage.googleapis.com/loyalty-public-arczn36dnada/240807164461_previous_photo_card_c546ea67-12e3-445d-ad25-b91c8d600830.jpg',
+      imageUrl: 'https://statics.vinpearl.com/vinclub-platinum_1723049468.png',
       backBg: 'linear-gradient(135deg, #cbd5e1 0%, #e2e8f0 50%, #94a3b8 100%)',
       borderColor: 'border-cyan-500/40',
       textColor: 'text-slate-700',
@@ -72,7 +72,7 @@ export default function VIPCardTab({ userName }: VIPCardTabProps) {
     },
     DIAMOND: {
       name: 'KIM CƯƠNG / DIAMOND',
-      imageUrl: 'https://storage.googleapis.com/loyalty-public-arczn36dnada/240807164519_previous_photo_card_efd6a076-7d73-46e2-ac0c-713d2dca20f7.jpg',
+      imageUrl: 'https://statics.vinpearl.com/vinclub-diamond_1723049663.png',
       backBg: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #0c0a09 100%)',
       borderColor: 'border-amber-500/50',
       textColor: 'text-amber-500',

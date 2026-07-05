@@ -28,6 +28,20 @@ const maskBankAccount = (accountNum: string): string => {
   return asterisks + lastFour;
 };
 
+const getCardBgImage = (rankStr?: string): string => {
+  const r = rankStr?.toUpperCase() || "";
+  if (r.includes("DIAMOND") || r.includes("KIM CƯƠNG")) {
+    return "https://statics.vinpearl.com/vinclub-diamond_1723049663.png";
+  }
+  if (r.includes("PLATINUM") || r.includes("BẠCH KIM")) {
+    return "https://statics.vinpearl.com/vinclub-platinum_1723049468.png";
+  }
+  if (r.includes("GOLD") || r.includes("VÀNG")) {
+    return "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcS42YT1prXcaoupJMGpoUAj7d1BVNTrGId7YctH4Yk190Zf6fU_";
+  }
+  return "https://statics.vinpearl.com/vinclub-member_1723049424.png";
+};
+
 // List of all legal banks in Vietnam
 const VIETNAMESE_BANKS = [
   { code: 'VCB', name: 'Vietcombank', full: 'Ngân hàng Ngoại thương Việt Nam' },
@@ -841,11 +855,11 @@ export default function ProfileTab({
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
             <img 
-              src="https://statics.vinpearl.com/vinclub-member_1723049424.png" 
+              src={getCardBgImage(rank)} 
               alt="Finance Card Background" 
-              className="w-full h-full object-cover brightness-[0.75] contrast-[1.05] group-hover:scale-102 transition-transform duration-700"
+              className="w-full h-full object-cover brightness-[0.72] contrast-[1.05] group-hover:scale-102 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 to-black/60" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
           </div>
 
           <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
