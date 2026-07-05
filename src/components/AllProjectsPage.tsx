@@ -91,7 +91,10 @@ export default function AllProjectsPage({ projects, onBack, onSelectProject }: A
       </div>
 
       {/* Content List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-28 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-transparent">
+      <div 
+        className="flex-1 overflow-y-auto px-4 py-4 pb-28 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-transparent"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <AnimatePresence mode="popLayout">
           {filteredProjects.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto">

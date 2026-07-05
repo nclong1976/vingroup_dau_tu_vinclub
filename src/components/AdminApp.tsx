@@ -3832,7 +3832,7 @@ export default function AdminApp() {
   const currentAdminEmail = localStorage.getItem('admin_email') || 'admin@gmail.com';
 
   return (
-    <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col md:flex-row font-sans">
+    <div className="h-screen bg-[#070709] text-neutral-100 flex flex-col md:flex-row font-sans overflow-hidden">
       
       {/* MOBILE TOP HEADER BAR */}
       <div className="h-14 bg-[#0c0c10] border-b border-[#e1b777]/10 flex items-center justify-between px-4 md:hidden shrink-0 z-30">
@@ -3911,7 +3911,8 @@ export default function AdminApp() {
 
       {/* MAIN CONTENT AREA */}
       <div 
-        className="flex-1 bg-[#070709] min-w-0"
+        className="flex-1 overflow-y-auto bg-[#070709] min-w-0 scroll-smooth overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <Routes>
           <Route path="/" element={<DashboardAdmin />} />

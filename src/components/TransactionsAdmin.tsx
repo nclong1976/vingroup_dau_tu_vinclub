@@ -53,46 +53,53 @@ export default function TransactionsAdmin() {
       const userRef = doc(db, 'users', tx.userId);
 
       await runTransaction(db, async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("Người dùng không tồn tại.");
-
-        const userData = userDoc.data();
-        const currentPoints = userData.points || 0;
-        const currentCumulative = userData.cumulativeDeposits || 0;
+        const userExists = tx.userId && tx.userId !== "anonymous" && tx.userId !== "ẨN DANH";
+        let userData: any = null;
+        if (userExists) {
+          const userDoc = await transaction.get(userRef);
+          if (userDoc.exists()) {
+            userData = userDoc.data();
+          }
+        }
 
         if (action === 'approve') {
           transaction.update(txRef, { status: 'Thành công' });
           
-          if (tx.type === 'plus' || tx.type === 'deposit') {
-            const newPoints = currentPoints + tx.amount;
-            const newCumulative = currentCumulative + tx.amount;
-            
-            // Determine new tier based on cumulative deposits
-            let newTier = 'THÀNH VIÊN / MEMBER';
-            if (newCumulative >= 10000000000) {
-              newTier = 'KIM CƯƠNG / DIAMOND';
-            } else if (newCumulative >= 5000000000) {
-              newTier = 'BẠCH KIM / PLATINUM';
-            } else if (newCumulative >= 1000000000) {
-              newTier = 'VÀNG / GOLD';
-            }
+          if (userData) {
+            const currentPoints = userData.points || 0;
+            const currentCumulative = userData.cumulativeDeposits || 0;
 
-            transaction.update(userRef, { 
-              points: newPoints,
-              balance: newPoints,
-              cumulativeDeposits: newCumulative,
-              rank: newTier,
-              updatedAt: new Date().toISOString()
-            });
-          } else if (tx.type === 'minus' || tx.type === 'withdraw') {
-            if (currentPoints < tx.amount) {
-              throw new Error("Số dư không đủ để thực hiện lệnh rút.");
+            if (tx.type === 'plus' || tx.type === 'deposit') {
+              const newPoints = currentPoints + tx.amount;
+              const newCumulative = currentCumulative + tx.amount;
+              
+              // Determine new tier based on cumulative deposits
+              let newTier = 'THÀNH VIÊN / MEMBER';
+              if (newCumulative >= 10000000000) {
+                newTier = 'KIM CƯƠNG / DIAMOND';
+              } else if (newCumulative >= 5000000000) {
+                newTier = 'BẠCH KIM / PLATINUM';
+              } else if (newCumulative >= 1000000000) {
+                newTier = 'VÀNG / GOLD';
+              }
+
+              transaction.update(userRef, { 
+                points: newPoints,
+                balance: newPoints,
+                cumulativeDeposits: newCumulative,
+                rank: newTier,
+                updatedAt: new Date().toISOString()
+              });
+            } else if (tx.type === 'minus' || tx.type === 'withdraw') {
+              if (currentPoints < tx.amount) {
+                throw new Error("Số dư không đủ để thực hiện lệnh rút.");
+              }
+              transaction.update(userRef, { 
+                points: currentPoints - tx.amount,
+                balance: currentPoints - tx.amount,
+                updatedAt: new Date().toISOString()
+              });
             }
-            transaction.update(userRef, { 
-              points: currentPoints - tx.amount,
-              balance: currentPoints - tx.amount,
-              updatedAt: new Date().toISOString()
-            });
           }
         } else {
           transaction.update(txRef, { status: 'Từ chối' });

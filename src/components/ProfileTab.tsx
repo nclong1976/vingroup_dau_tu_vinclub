@@ -577,7 +577,7 @@ export default function ProfileTab({
     setWithdrawError("");
     setIsWithdrawSubmitting(true);
     try {
-      const uid = auth.currentUser?.uid || "anonymous";
+      const uid = auth.currentUser?.uid || userId || "anonymous";
       // Create a withdraw transaction in Firestore
       const newTx = {
         userId: uid,

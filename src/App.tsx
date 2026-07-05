@@ -167,6 +167,25 @@ export default function App() {
   }, [activeTab]);
 
 
+  const homeScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleHomeScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    localStorage.setItem('vinclub_home_scroll', e.currentTarget.scrollTop.toString());
+  };
+
+  useEffect(() => {
+    if (!isLoadingGlobe && activeTab === 'home') {
+      const savedScroll = localStorage.getItem('vinclub_home_scroll');
+      if (savedScroll && homeScrollRef.current) {
+        setTimeout(() => {
+          if (homeScrollRef.current) {
+            homeScrollRef.current.scrollTop = parseInt(savedScroll, 10);
+          }
+        }, 120);
+      }
+    }
+  }, [isLoadingGlobe, activeTab]);
+
   const [appView, setAppView] = useState<'main' | 'all-news' | 'all-projects'>('main');
   const [selectedNews, setSelectedNews] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
@@ -1047,6 +1066,8 @@ export default function App() {
                          {/* HOME PAGE SCROLLABLE CONTENT LAYER */}
             {!isLoadingGlobe && activeTab === 'home' && !selectedCard && (
               <div 
+                ref={homeScrollRef}
+                onScroll={handleHomeScroll}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
