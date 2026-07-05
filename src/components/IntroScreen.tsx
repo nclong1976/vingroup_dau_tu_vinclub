@@ -508,13 +508,14 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
           className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-in-out"
           style={{ 
             backgroundImage: `url(${step === 'register' ? registerBg : step === 'terms' ? termsBg : loginBg})`,
-            backgroundPosition: 'center top'
+            backgroundPosition: 'center top',
+            filter: 'brightness(1.25) contrast(1.05)'
           }}
         />
         {step !== 'terms' && (
           <>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/90 to-transparent md:via-[#121212]/80 z-1" />
-            <div className="absolute bottom-0 w-full h-48 bg-gradient-to-t from-[#141210]/30 to-transparent pointer-events-none z-1" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/60 via-[#121212]/20 to-transparent z-1" />
+            <div className="absolute bottom-0 w-full h-48 bg-gradient-to-t from-[#141210]/15 to-transparent pointer-events-none z-1" />
           </>
         )}
       </div>
@@ -561,11 +562,11 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
+              className="w-full bg-transparent border-0 p-1 flex flex-col gap-5 shrink-0 shadow-none"
             >
               <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
                 <video 
-                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA%20-%20Trim.mp4" 
                   autoPlay 
                   loop 
                   muted 
@@ -632,11 +633,11 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
+              className="w-full bg-transparent border-0 p-1 flex flex-col gap-5 shrink-0 shadow-none"
             >
               <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
                 <video 
-                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA%20-%20Trim.mp4" 
                   autoPlay 
                   loop 
                   muted 
@@ -723,11 +724,11 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
+              className="w-full bg-transparent border-0 p-1 flex flex-col gap-5 shrink-0 shadow-none"
             >
               <div className="w-full aspect-video max-h-[160px] rounded-2xl overflow-hidden border border-white/5 shadow-inner shrink-0 relative bg-black/40">
                 <video 
-                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA.mp4" 
+                  src="https://jrqajkrbkirvodcvxlrb.supabase.co/storage/v1/object/public/hihi/AQNuzotWPt27mvqPYUWEX2fZGbpCjgC4wcvSBQocaPW03PSdm6VOSO3g1Di7GbHNY2S-WnK-rs4rRqv_NKgRQrpq9HQqNjoF4TA%20-%20Trim.mp4" 
                   autoPlay 
                   loop 
                   muted 
@@ -933,7 +934,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full bg-[#0a0a0c]/75 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col gap-5 shrink-0"
+              className="w-full bg-transparent border-0 p-1 flex flex-col gap-5 shrink-0 shadow-none"
             >
               {!previewUrl && !useCamera && (
                 <div className="flex flex-col gap-5 text-center">
