@@ -4,7 +4,7 @@ import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import admin from "firebase-admin";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import firebaseConfig from "../firebase-applet-config.json";
+const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8"));
 import dotenv from "dotenv";
 import { initializeApp as initializeClientApp } from "firebase/app";
 import { getFirestore as getClientFirestore, doc, setDoc, getDoc, addDoc, collection } from "firebase/firestore";
