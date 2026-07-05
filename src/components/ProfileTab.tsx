@@ -836,45 +836,79 @@ export default function ProfileTab({
           </div>
         </div>
 
-        {/* 3. FINANCE CARD */}
-        <div className="w-full bg-[#1c1c1e] rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <Landmark className="w-24 h-24 text-white" />
+        {/* 3. FINANCE CARD (GOLD VINCLUB CARD MOCKUP) */}
+        <div className="w-full relative rounded-3xl overflow-hidden shadow-2xl border border-[#e1b777]/20 p-5 text-white flex flex-col justify-between min-h-[220px] group">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0">
+            <img 
+              src="https://statics.vinpearl.com/vinclub-member_1723049424.png" 
+              alt="Finance Card Background" 
+              className="w-full h-full object-cover brightness-[0.75] contrast-[1.05] group-hover:scale-102 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 to-black/60" />
           </div>
-          
-          <div className="relative z-10">
+
+          <div className="relative z-10 flex flex-col justify-between h-full space-y-5">
+            {/* Card Top: Title, ID & Chip */}
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">Tổng tài sản khả dụng</p>
-                <h3 className="text-2xl font-black tracking-tight flex items-baseline gap-1.5">
-                  <motion.span
-                    key={balance}
-                    initial={{ opacity: 0.5, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-r from-[#e1b777] via-white to-[#e1b777] bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer"
-                  >
-                    {balance.toLocaleString()}
-                  </motion.span>
-                  <span className="text-xs text-[#c5a880] font-bold">VND</span>
-                </h3>
+                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#e1b777]">VINCLUB VIP FINANCE CARD</span>
+                {linkedBank ? (
+                  <p className="text-[10px] font-bold text-neutral-300 mt-0.5 font-mono">
+                    Ngân hàng: <span className="text-white font-extrabold">{linkedBank.bankName}</span> - {maskBankAccount(linkedBank.accountNum)}
+                  </p>
+                ) : (
+                  <p className="text-[10px] font-medium text-neutral-400 mt-0.5">Chưa liên kết ngân hàng</p>
+                )}
               </div>
-              <div className="px-2 py-1 bg-white/5 rounded-lg border border-white/10 text-[9px] font-black text-neutral-400 uppercase tracking-widest">
-                ID: {memberId}
+              
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-0.5 bg-black/40 rounded border border-[#e1b777]/30 text-[8px] sm:text-[9px] font-mono font-bold text-[#e1b777]">
+                  ID: {memberId}
+                </div>
+                {/* Sim Chip Icon */}
+                <div className="w-7 h-5 bg-gradient-to-r from-amber-300 via-amber-200 to-yellow-400 rounded border border-amber-400/20 shadow flex flex-col justify-between p-0.5 opacity-90 shrink-0">
+                  <div className="flex justify-between w-full h-0.5"><div className="w-0.5 bg-amber-600/30 rounded-sm"></div><div className="w-0.5 bg-amber-600/30 rounded-sm"></div></div>
+                  <div className="w-full h-0.5 bg-amber-600/20"></div>
+                  <div className="flex justify-between w-full h-0.5"><div className="w-0.5 bg-amber-600/30 rounded-sm"></div><div className="w-0.5 bg-amber-600/30 rounded-sm"></div></div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-8">
+            {/* Card Middle: Balance */}
+            <div>
+              <p className="text-[9px] font-black text-neutral-300 uppercase tracking-[0.2em] mb-0.5">Tổng tài sản khả dụng</p>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight flex items-baseline gap-1.5">
+                <motion.span
+                  key={balance}
+                  initial={{ opacity: 0.5, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-r from-[#e1b777] via-white to-[#e1b777] bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer"
+                >
+                  {balance.toLocaleString()}
+                </motion.span>
+                <span className="text-xs text-[#e1b777] font-bold font-mono">VND</span>
+              </h3>
+              {linkedBank && (
+                <p className="text-[9px] text-neutral-300 uppercase tracking-wider mt-1 font-sans">
+                  Chủ thẻ: <strong className="text-white">{linkedBank.accountOwner}</strong>
+                </p>
+              )}
+            </div>
+
+            {/* Card Bottom: Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setActiveModal('deposit')}
-                className="flex items-center justify-center gap-2 py-3 bg-[#c5a880] hover:bg-[#b08953] active:scale-95 transition-all text-neutral-900 font-black text-xs rounded-2xl shadow-lg"
+                className="flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-[#e1b777] to-[#c59e62] hover:from-[#c59e62] hover:to-[#e1b777] active:scale-95 transition-all text-neutral-950 font-bold text-xs rounded-2xl shadow-lg cursor-pointer"
               >
-                <ArrowDown className="w-4 h-4" /> Nạp tiền
+                <ArrowDown className="w-3.5 h-3.5" /> Nạp tiền
               </button>
               <button 
                 onClick={() => setActiveModal('withdraw')}
-                className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-white font-black text-xs rounded-2xl border border-white/10"
+                className="flex items-center justify-center gap-2 py-2.5 bg-black/40 hover:bg-black/60 border border-white/20 active:scale-95 transition-all text-white font-bold text-xs rounded-2xl cursor-pointer"
               >
-                <ArrowUp className="w-4 h-4" /> Rút tiền
+                <ArrowUp className="w-3.5 h-3.5" /> Rút tiền
               </button>
             </div>
           </div>
@@ -904,64 +938,6 @@ export default function ProfileTab({
           <div className="space-y-2">
             <p className="px-1 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Tài khoản & Xác thực</p>
             
-            {linkedBank && (
-              <div className="px-1 pb-1">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="w-full relative rounded-2xl overflow-hidden shadow-lg border border-white/10 aspect-[1.58/1] flex flex-col justify-between p-4.5 text-white cursor-pointer group"
-                  onClick={() => setActiveModal('bank_link')}
-                >
-                  {/* Background Image */}
-                  <div className="absolute inset-0 z-0">
-                    <img 
-                      src="https://statics.vinpearl.com/vinclub-member_1723049424.png" 
-                      alt="Bank Card Background" 
-                      className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
-                  </div>
-
-                  {/* Card Top: Bank Logo / Chip */}
-                  <div className="relative z-10 flex justify-between items-start">
-                    <div>
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#e1b777]">VINCLUB VIP CARD</span>
-                      <h4 className="text-xs font-black tracking-wider uppercase mt-0.5">{linkedBank.bankName}</h4>
-                    </div>
-                    {/* Decorative Sim Card Chip */}
-                    <div className="w-8 h-6 bg-gradient-to-r from-amber-300 via-amber-200 to-yellow-400 rounded-md border border-amber-400/20 shadow-sm flex flex-col justify-between p-1 opacity-90">
-                      <div className="flex justify-between w-full h-1"><div className="w-1 bg-amber-600/30 rounded-sm"></div><div className="w-1 bg-amber-600/30 rounded-sm"></div></div>
-                      <div className="w-full h-0.5 bg-amber-600/20"></div>
-                      <div className="flex justify-between w-full h-1"><div className="w-1 bg-amber-600/30 rounded-sm"></div><div className="w-1 bg-amber-600/30 rounded-sm"></div></div>
-                    </div>
-                  </div>
-
-                  {/* Card Middle: Masked Account Number */}
-                  <div className="relative z-10 my-auto pt-2">
-                    <p className="text-[8px] text-neutral-300 uppercase tracking-widest font-mono">Số tài khoản liên kết</p>
-                    <p className="text-base font-black tracking-[0.12em] font-mono text-white drop-shadow-md">
-                      {(() => {
-                        const num = linkedBank.accountNum;
-                        const masked = maskBankAccount(num);
-                        return masked.replace(/(.{4})/g, '$1 ').trim();
-                      })()}
-                    </p>
-                  </div>
-
-                  {/* Card Bottom: Owner */}
-                  <div className="relative z-10 flex justify-between items-end">
-                    <div>
-                      <p className="text-[7px] text-neutral-400 uppercase tracking-widest leading-none">Chủ tài khoản</p>
-                      <p className="text-xs font-black tracking-wider uppercase mt-1 text-white">{linkedBank.accountOwner}</p>
-                    </div>
-                    <div className="px-2 py-0.5 rounded bg-black/40 border border-white/10 backdrop-blur-md text-[7px] font-black uppercase text-[#e1b777] tracking-widest">
-                      ĐÃ LIÊN KẾT
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-
             <div className="bg-white rounded-3xl shadow-sm border border-neutral-100 overflow-hidden divide-y divide-neutral-50">
               <MenuItem 
                 icon={Building2} 

@@ -41,9 +41,9 @@ export default function GalleryGlobe({
   const [liveProjects, setLiveProjects] = useState<any[]>([]);
 
 
-  // 1. Listen to active projects real-time from Firestore
+  // 1. Listen to all projects real-time from Firestore
   useEffect(() => {
-    const q = query(collection(db, 'projects'), where('status', '==', 'active'));
+    const q = query(collection(db, 'projects'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: any[] = [];
