@@ -1302,7 +1302,7 @@ export default function App() {
           </main>
 
           {/* BOTTOM HORIZONTAL NAVIGATION BAR */}
-          {!isLoadingGlobe && (
+          {!isLoadingGlobe && !selectedCard && appView === 'main' && !selectedNews && !showDepositModal && !showHistoryModal && (
             <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center items-center pointer-events-none select-none px-4">
               <div className="w-full max-w-[390px] flex items-center justify-between pointer-events-auto">
                 
