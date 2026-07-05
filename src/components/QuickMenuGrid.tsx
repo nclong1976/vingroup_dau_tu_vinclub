@@ -1,6 +1,8 @@
 import ProgressiveImage from './ProgressiveImage';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { 
   Gift, Briefcase, Trophy, ShoppingCart, Disc, TrendingUp, 
   X, Check, Clipboard, Calculator, Sparkles, Building2, 
@@ -16,8 +18,85 @@ interface QuickMenuGridProps {
   userRank?: string;
 }
 
+const WELFARE_PACKAGES = [
+  {
+    id: "pkg1",
+    name: "Quỹ phát triển giáo dục liên cấp",
+    amount: "2,000,000 VND",
+    scale: "287,000,000,000 VND",
+    bonus: "2,000,000 VND",
+    benefits: "Nhận ngay tiền thưởng ưu đãi 2,000,000 VND sau khi hoàn thành gói tham gia!"
+  },
+  {
+    id: "pkg2",
+    name: "Quỹ phát triển y tế chăm sóc sức khỏe",
+    amount: "30,000,000 VND",
+    scale: "4,860,000,000,000 VND",
+    bonus: "12,000,000 VND",
+    benefits: "Nhận tiền thưởng ưu đãi 12,000,000 VND khi hoàn thành gói tham gia!"
+  },
+  {
+    id: "pkg3",
+    name: "Quỹ dự án phát triển công nghệ công nghiệp",
+    amount: "300,000,000 VND",
+    scale: "6,687,000,000,000 VND",
+    bonus: "32,000,000 VND",
+    benefits: "Nhận tiền thưởng ưu đãi 32,000,000 VND khi hoàn thành gói tham gia!"
+  },
+  {
+    id: "pkg4",
+    name: "Quỹ dự án phát triển tương lai xanh",
+    amount: "800,000,000 VND",
+    scale: "8,564,000,000,000 VND",
+    bonus: "65,000,000 VND",
+    benefits: "Ưu đãi tiền thưởng 65,000,000 VND khi hoàn thành gói; tặng voucher giảm giá 8% mua xe điện VinFast và 5% khi mua nhà Vinhomes!"
+  },
+  {
+    id: "pkg5",
+    name: "Quỹ phát triển đô thị tương lai",
+    amount: "1,500,000,000 VND",
+    scale: "14,367,000,000,000 VND",
+    bonus: "156,000,000 VND",
+    benefits: "Ưu đãi tiền thưởng 156,000,000 VND; tặng voucher giảm giá 12% mua xe VinFast, 10% mua nhà Vinhomes; miễn phí 30 ngày/năm nghỉ dưỡng tại Vinpearl!"
+  },
+  {
+    id: "pkg6",
+    name: "Quỹ phát triển lưu trữ năng lượng sạch",
+    amount: "3,200,000,000 VND",
+    scale: "21,769,000,000,000 VND",
+    bonus: "356,000,000 VND",
+    benefits: "Ưu đãi tiền thưởng 356,000,000 VND; voucher giảm 15% mua xe VinFast, 15% mua nhà Vinhomes; tặng 1 thẻ VIP Vingroup hạng Bạc; miễn phí 40 ngày/năm nghỉ dưỡng tại Vinpearl!"
+  },
+  {
+    id: "pkg7",
+    name: "Quỹ phát triển công nghệ tương lai AI",
+    amount: "5,300,000,000 VND",
+    scale: "76,168,000,000,000 VND",
+    bonus: "648,000,000 VND",
+    benefits: "Ưu đãi tiền thưởng 648,000,000 VND; voucher giảm 20% mua xe VinFast, 18% mua nhà Vinhomes; tặng 1 thẻ VIP Vingroup hạng Bạc và 1 thẻ VIP hạng Vàng; miễn phí 50 ngày/năm nghỉ dưỡng tại Vinpearl; cơ hội bốc thăm trúng căn nhà hoa hậu tại Vinhomes Ocean Park và 2 cây vàng SJC 9999!"
+  },
+  {
+    id: "pkg8",
+    name: "Quỹ phát triển cộng đồng",
+    amount: "8,000,000,000 VND",
+    scale: "114,168,000,000,000 VND",
+    bonus: "Nhận 1 căn nhà Vinhomes Green Bay",
+    benefits: "Ưu đãi tặng ngay 1 căn nhà Vinhomes Green Bay khi hoàn thành gói; voucher giảm 20% mua xe VinFast, 18% mua nhà Vinhomes; tặng 1 thẻ VIP Vingroup hạng Bạc và 1 thẻ VIP hạng Kim Cương; miễn phí 60 ngày/năm nghỉ dưỡng tại Vinpearl; cơ hội bốc thăm căn nhà hoa hậu Vinhomes Ocean Park, 2 cây vàng SJC 9999; trở thành cổ đông tập đoàn với 0.01% tổng lợi nhuận quý!"
+  }
+];
+
 export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInvestClick, userRank }: QuickMenuGridProps) {
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
+
+  React.useEffect(() => {
+    if (activeModal === null) {
+      setSelectedPackage(null);
+      setConsultSubmitted(false);
+      setConsultMessage('');
+      setConsultPhone('');
+    }
+  }, [activeModal]);
   
   // 1. Consultation Form States
   const [consultName, setConsultName] = useState(userName);
@@ -102,13 +181,32 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
   };
 
   // Submit consultation handler
-  const handleConsultSubmit = (e: React.FormEvent) => {
+  const handleConsultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consultPhone) return;
     setConsultSubmitted(true);
-    setTimeout(() => {
-      // simulate response
-    }, 1000);
+
+    try {
+      const user = auth.currentUser;
+      const textContent = `[YÊU CẦU THAM VẤN PHÚC LỢI VIP]
+- Họ và tên: ${consultName}
+- Số điện thoại: ${consultPhone}
+- Gói quan tâm: ${selectedPackage ? selectedPackage.name : consultType}
+- Số tiền tham gia: ${selectedPackage ? selectedPackage.amount : 'Chưa chọn'}
+- Quy mô dự án: ${selectedPackage ? selectedPackage.scale : 'N/A'}
+- Lời nhắn: ${consultMessage || 'Không có'}`;
+
+      await addDoc(collection(db, 'support_chat'), {
+        sender: 'user',
+        senderEmail: user?.email || 'guest@vinclub.vip',
+        userId: user?.uid || 'guest_uid',
+        userName: consultName || user?.displayName || 'Thượng khách',
+        text: textContent,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      console.error("Lỗi gửi yêu cầu tham vấn lên support chat:", err);
+    }
   };
 
   // Spin Lucky Wheel handler
@@ -247,95 +345,165 @@ export default function QuickMenuGrid({ points, onUpdatePoints, userName, onInve
               
               {/* 1. WELFARE CONSULTATION MODAL */}
               {activeModal === 'consult' && (
-                <div className="flex flex-col h-full font-sans">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="flex flex-col h-full font-sans max-h-[75vh]">
+                  {/* Modal Header */}
+                  <div className="flex items-center gap-3 mb-4 shrink-0">
+                    {selectedPackage && (
+                      <button 
+                        onClick={() => setSelectedPackage(null)}
+                        className="p-1.5 hover:bg-neutral-100 rounded-full cursor-pointer transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-neutral-600" />
+                      </button>
+                    )}
                     <div className="p-2 bg-[#b08953]/10 border border-[#b08953]/20 rounded-xl">
                       <Gift className="w-5 h-5 text-[#b08953]" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Tham vấn phúc lợi</h3>
-                      <p className="text-[10px] text-neutral-400">Trợ lý tư vấn VIP dành riêng cho bạn</p>
+                      <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">
+                        {selectedPackage ? 'Đăng ký Tham vấn' : 'Tham vấn phúc lợi'}
+                      </h3>
+                      <p className="text-[10px] text-neutral-400">
+                        {selectedPackage ? selectedPackage.name : 'Trợ lý tư vấn VIP dành riêng cho bạn'}
+                      </p>
                     </div>
                   </div>
 
-                  {!consultSubmitted ? (
-                    <form onSubmit={handleConsultSubmit} className="space-y-3.5">
-                      <div>
-                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Thành viên</label>
-                        <input
-                          type="text"
-                          value={consultName}
-                          onChange={(e) => setConsultName(e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953]"
-                          placeholder="Họ và tên..."
-                          required
-                        />
+                  {!selectedPackage ? (
+                    /* PACKAGE LISTING VIEW */
+                    <div className="overflow-y-auto space-y-4 pr-1 flex-1 pb-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-500/20">
+                      <div className="bg-gradient-to-br from-[#1e1e24] to-[#0f0f12] border border-neutral-800 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden mb-2">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#e1b777]/5 rounded-full blur-xl pointer-events-none" />
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#e1b777] mb-1">Đặc quyền Thượng khách VinClub</h4>
+                        <p className="text-[9.5px] text-neutral-300 leading-relaxed">
+                          Lựa chọn một trong các gói phúc lợi đầu tư chuyên biệt dưới đây để đăng ký nhận tư vấn và giải ngân phần thưởng độc quyền từ Tập đoàn Vingroup.
+                        </p>
                       </div>
 
-                      <div>
-                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Số điện thoại liên hệ</label>
-                        <input
-                          type="tel"
-                          value={consultPhone}
-                          onChange={(e) => setConsultPhone(e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953]"
-                          placeholder="Nhập số điện thoại..."
-                          required
-                        />
-                      </div>
+                      <div className="space-y-3">
+                        {WELFARE_PACKAGES.map((pkg) => (
+                          <div key={pkg.id} className="p-4 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-amber-50/20 hover:border-amber-200 transition-all duration-300 shadow-sm flex flex-col gap-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-[11px] font-black text-neutral-800 uppercase tracking-wide leading-tight">
+                                {pkg.name}
+                              </h4>
+                              <span className="text-[7.5px] font-mono font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 uppercase tracking-widest shrink-0">
+                                VIP Plan
+                              </span>
+                            </div>
 
-                      <div>
-                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Nội dung quan tâm</label>
-                        <select
-                          value={consultType}
-                          onChange={(e) => setConsultType(e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953]"
-                        >
-                          <option value="Đầu tư tài chính">Đầu tư tích lũy VinPoints</option>
-                          <option value="Đặc quyền nghỉ dưỡng">Đặc quyền nghỉ dưỡng Vinpearl Luxury</option>
-                          <option value="Sản phẩm y tế Vinmec">Gói chăm sóc y tế VIP Vinmec</option>
-                          <option value="Bất động sản Vinhomes">Biệt thự nghỉ dưỡng Vinhomes</option>
-                        </select>
-                      </div>
+                            {/* Package Info Grid */}
+                            <div className="grid grid-cols-2 gap-1.5 bg-white p-2 rounded-xl border border-neutral-200/60 text-[9px] font-medium text-neutral-500">
+                              <div>
+                                <span className="text-[8px] text-neutral-400 block font-bold uppercase tracking-wide">Số tiền:</span>
+                                <span className="text-neutral-800 font-mono font-bold">{pkg.amount}</span>
+                              </div>
+                              <div>
+                                <span className="text-[8px] text-neutral-400 block font-bold uppercase tracking-wide">Quy mô quỹ:</span>
+                                <span className="text-neutral-800 font-mono font-bold">{pkg.scale}</span>
+                              </div>
+                            </div>
 
-                      <div>
-                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Lời nhắn (Không bắt buộc)</label>
-                        <textarea
-                          value={consultMessage}
-                          onChange={(e) => setConsultMessage(e.target.value)}
-                          rows={2}
-                          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953] resize-none"
-                          placeholder="Thời gian trợ lý có thể gọi cho bạn..."
-                        />
-                      </div>
+                            {/* Rewards / Incentives */}
+                            <div className="bg-[#b08953]/5 border border-[#b08953]/15 rounded-xl p-2.5">
+                              <div className="flex items-center gap-1.5 mb-1 text-[8.5px] font-black text-[#b08953] uppercase tracking-wider">
+                                <Sparkles className="w-3 h-3 animate-pulse" />
+                                <span>Ưu đãi & Đặc quyền:</span>
+                              </div>
+                              <p className="text-[9.5px] text-neutral-750 font-bold leading-normal">
+                                💰 Phần thưởng: <span className="text-amber-700 font-black">{pkg.bonus}</span>
+                              </p>
+                              <p className="text-[9px] text-neutral-600 font-medium leading-relaxed mt-1">
+                                {pkg.benefits}
+                              </p>
+                            </div>
 
-                      <button
-                        type="submit"
-                        className="w-full py-3 bg-[#b08953] hover:bg-[#98723c] text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-transform active:scale-95 shadow-md cursor-pointer"
-                      >
-                        Gửi yêu cầu tham vấn
-                      </button>
-                    </form>
+                            <button
+                              onClick={() => {
+                                setSelectedPackage(pkg);
+                                setConsultType(pkg.name);
+                              }}
+                              className="w-full mt-1.5 py-2.5 bg-gradient-to-b from-[#d4af37] to-[#aa7c11] text-white font-bold text-[9.5px] uppercase tracking-widest rounded-xl hover:from-[#e1b777] hover:to-[#c69a3f] active:scale-98 transition-all cursor-pointer text-center shadow shadow-amber-500/10"
+                            >
+                              Đăng ký tham vấn
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
-                    <motion.div 
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="text-center py-6 flex flex-col items-center"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 animate-bounce">
-                        <Check className="w-6 h-6" strokeWidth={3} />
-                      </div>
-                      <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">Gửi yêu cầu thành công</h4>
-                      <p className="text-[11px] text-neutral-500 px-4 leading-relaxed mb-5">
-                        Trợ lý cá nhân chuyên trách VinClub sẽ liên hệ với Thượng khách qua số <strong className="text-amber-700">{consultPhone}</strong> trong vòng 15 phút.
-                      </p>
-                      <button
-                        onClick={() => setActiveModal(null)}
-                        className="px-5 py-2 bg-neutral-50 border border-neutral-200 text-neutral-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:border-[#b08953] transition-colors"
-                      >
-                        Đã hiểu
-                      </button>
-                    </motion.div>
+                    /* FORM SUBMISSION VIEW */
+                    <div className="flex-1 flex flex-col justify-between">
+                      {!consultSubmitted ? (
+                        <form onSubmit={handleConsultSubmit} className="space-y-3.5 flex-1">
+                          <div className="bg-amber-50/50 border border-amber-200/50 rounded-xl p-3 text-[10px] text-amber-800 font-medium mb-1">
+                            Quý khách đang đăng ký tham vấn gói: <strong className="text-amber-900 block mt-0.5">{selectedPackage.name}</strong>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Thành viên</label>
+                            <input
+                              type="text"
+                              value={consultName}
+                              onChange={(e) => setConsultName(e.target.value)}
+                              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953]"
+                              placeholder="Họ và tên..."
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Số điện thoại liên hệ</label>
+                            <input
+                              type="tel"
+                              value={consultPhone}
+                              onChange={(e) => setConsultPhone(e.target.value)}
+                              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953]"
+                              placeholder="Nhập số điện thoại..."
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-mono font-bold block mb-1">Lời nhắn (Không bắt buộc)</label>
+                            <textarea
+                              value={consultMessage}
+                              onChange={(e) => setConsultMessage(e.target.value)}
+                              rows={3}
+                              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-[#b08953] resize-none"
+                              placeholder="Ví dụ: Gọi điện cho tôi sau 18h..."
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full py-3 bg-[#b08953] hover:bg-[#98723c] text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-transform active:scale-95 shadow-md cursor-pointer mt-4"
+                          >
+                            Gửi yêu cầu tham vấn
+                          </button>
+                        </form>
+                      ) : (
+                        <motion.div 
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="text-center py-6 flex flex-col items-center flex-1 justify-center"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 animate-bounce">
+                            <Check className="w-6 h-6" strokeWidth={3} />
+                          </div>
+                          <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">Gửi yêu cầu thành công</h4>
+                          <p className="text-[10px] text-neutral-500 px-4 leading-relaxed mb-5">
+                            Yêu cầu tham vấn gói <strong>{selectedPackage.name}</strong> đã được ghi nhận. Trợ lý cá nhân chuyên trách VinClub sẽ liên hệ với Thượng khách qua số <strong className="text-amber-700">{consultPhone}</strong> trong vòng 15 phút.
+                          </p>
+                          <button
+                            onClick={() => setActiveModal(null)}
+                            className="px-5 py-2.5 bg-neutral-50 border border-neutral-200 text-neutral-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:border-[#b08953] transition-colors"
+                          >
+                            Đã hiểu
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
