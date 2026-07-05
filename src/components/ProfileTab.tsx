@@ -78,6 +78,7 @@ interface ProfileTabProps {
   onUpdatePhoto?: (newPhotoUrl: string) => void;
   onBack?: () => void;
   userId?: string;
+  onViewReceipt?: (tx: any) => void;
 }
 
 export default function ProfileTab({ 
@@ -92,7 +93,8 @@ export default function ProfileTab({
   onNavigateToSupport,
   onUpdatePhoto,
   onBack,
-  userId
+  userId,
+  onViewReceipt
 }: ProfileTabProps) {
   
   // Active modal state
@@ -965,15 +967,30 @@ export default function ProfileTab({
               </button>
             </div>
             <div className="bg-white rounded-3xl p-4 border border-neutral-100 shadow-sm space-y-4">
-              {recentTransactions.map((tx, idx) => (
-                <div key={tx.id || idx} className="flex items-center justify-between">
+               {recentTransactions.map((tx, idx) => (
+                <div 
+                  key={tx.id || idx} 
+                  className={`flex items-center justify-between p-1.5 rounded-2xl transition-all ${tx.type === 'investment' ? 'cursor-pointer hover:bg-neutral-50 active:scale-[0.98]' : ''}`}
+                  onClick={() => {
+                    if (tx.type === 'investment' && onViewReceipt) {
+                      onViewReceipt(tx);
+                    }
+                  }}
+                >
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'plus' || tx.type === 'deposit' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                       {tx.type === 'plus' || tx.type === 'deposit' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                     </div>
                     <div>
                       <p className="text-[11px] font-black text-neutral-900 leading-none mb-1">{tx.title || (tx.type === 'plus' ? 'Nạp tiền' : 'Rút tiền')}</p>
-                      <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">{new Date(tx.date || tx.createdAt).toLocaleDateString('vi-VN')}</p>
+                      <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+                        {tx.date 
+                          ? (tx.date.includes('-') ? new Date(tx.date).toLocaleDateString('vi-VN') : tx.date)
+                          : tx.createdAt?.seconds 
+                            ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString('vi-VN')
+                            : 'N/A'
+                        }
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">

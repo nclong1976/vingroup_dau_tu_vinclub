@@ -129,6 +129,7 @@ import NewsSection from './components/NewsSection';
 import AllNewsPage from './components/AllNewsPage';
 import NewsDetailPage from './components/NewsDetailPage';
 import AllProjectsPage from './components/AllProjectsPage';
+import ReceiptModal from './components/ReceiptModal';
 
 const liveWithdrawals = [
   "Nguyễn Văn Bảo rút lãi suất thành công 250.000.000 VND",
@@ -166,6 +167,7 @@ export default function App() {
   const [broadcast, setBroadcast] = useState<string>('');
   const seedingInProgress = useRef(false);
   const [realTransactions, setRealTransactions] = useState<any[]>([]);
+  const [selectedReceiptTx, setSelectedReceiptTx] = useState<any | null>(null);
 
   useEffect(() => {
     if (!userId) {
@@ -788,7 +790,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* TOP HEADER: SEARCH BAR + NOTIFICATION BELL */}
-          {!isLoadingGlobe && activeTab === 'home' && (
+          {!isLoadingGlobe && activeTab === 'home' && !selectedCard && appView === 'main' && (
             <motion.header 
               initial={{ y: -30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -1122,6 +1124,7 @@ export default function App() {
                       onUpdatePhoto={handleUpdateUserPhoto}
                       onBack={() => setActiveTab('home')}
                       userId={userId || undefined}
+                      onViewReceipt={(tx) => setSelectedReceiptTx(tx)}
                     />
                   </div>
                 </motion.div>
@@ -1249,15 +1252,26 @@ export default function App() {
                           const displayPoints = tx.amount || tx.points || 0;
                           const dateStr = tx.date 
                             ? (tx.date.includes('-') ? new Date(tx.date).toLocaleDateString('vi-VN') : tx.date)
-                            : 'N/A';
+                            : tx.createdAt?.seconds 
+                              ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString('vi-VN')
+                              : 'N/A';
                           const displayStatus = tx.status === 'completed' || tx.status === 'success' || tx.status === 'Thành công'
                             ? 'Thành công'
-                            : tx.status === 'pending' || tx.status === 'Đang chờ' || tx.status === 'Đang xử lý'
+                            : tx.status === 'pending' || tx.status === 'Đang chờ' || tx.status === 'Đang xử lý' || tx.status === 'Đang chờ duyệt'
                               ? 'Chờ duyệt'
                               : 'Từ chối';
                           
                           return (
-                            <div key={tx.id} className="bg-neutral-950/70 border border-white/5 rounded-2xl p-3 flex justify-between items-center hover:border-amber-500/15 transition-all">
+                            <div 
+                              key={tx.id} 
+                              onClick={() => {
+                                if (tx.type === 'investment') {
+                                  setSelectedReceiptTx(tx);
+                                  setShowHistoryModal(false);
+                                }
+                              }}
+                              className={`bg-neutral-950/70 border border-white/5 rounded-2xl p-3 flex justify-between items-center transition-all ${tx.type === 'investment' ? 'cursor-pointer hover:border-amber-500/35 hover:bg-neutral-900 active:scale-[0.98]' : ''}`}
+                            >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className={`p-2 rounded-xl shrink-0 ${isPlus ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                                   {isPlus ? <ArrowDownLeft className="w-4 h-4 shrink-0" /> : <ArrowUpRight className="w-4 h-4 shrink-0" />}
@@ -1302,7 +1316,7 @@ export default function App() {
           </main>
 
           {/* BOTTOM HORIZONTAL NAVIGATION BAR */}
-          {!isLoadingGlobe && !selectedCard && appView === 'main' && !selectedNews && !showDepositModal && !showHistoryModal && (
+          {!isLoadingGlobe && !selectedCard && appView === 'main' && !selectedNews && !showDepositModal && !showHistoryModal && !selectedReceiptTx && (
             <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center items-center pointer-events-none select-none px-4">
               <div className="w-full max-w-[390px] flex items-center justify-between pointer-events-auto">
                 
@@ -1444,6 +1458,14 @@ export default function App() {
                 setIsSearchingSpinner(false);
               }
             }}
+          />
+        )}
+
+        {selectedReceiptTx && (
+          <ReceiptModal 
+            tx={selectedReceiptTx}
+            onClose={() => setSelectedReceiptTx(null)}
+            userData={userData}
           />
         )}
         

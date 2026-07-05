@@ -638,6 +638,28 @@ function ProjectsAdmin() {
     });
   };
 
+  const handleToggleAllStatus = async (status: 'active' | 'inactive') => {
+    const verb = status === 'active' ? 'MỞ HOẠT ĐỘNG' : 'ĐỒNG LOẠT ĐÓNG';
+    if (confirm(`Bạn có chắc chắn muốn ${verb} TOÀN BỘ các dự án đầu tư trên hệ thống?`)) {
+      setIsSaving(true);
+      try {
+        const promises = projects.map(p => 
+          updateDoc(doc(db, 'projects', p.id), {
+            status: status,
+            updatedAt: new Date()
+          })
+        );
+        await Promise.all(promises);
+        alert(`Đã ${status === 'active' ? 'mở hoạt động' : 'đóng'} thành công toàn bộ dự án!`);
+      } catch (err) {
+        console.error("Error toggling all projects status:", err);
+        alert("Có lỗi xảy ra khi cập nhật trạng thái các dự án.");
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
   const filteredProjects = projects.filter(p => (p.tab || 'Đầu tư Chung') === activeTab);
 
   return (
@@ -653,7 +675,21 @@ function ProjectsAdmin() {
             Quản lý danh sách các gói góp vốn đầu tư toàn hệ thống
           </p>
         </div>
-        <div className="flex gap-3 mt-4 md:mt-0">
+        <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+          <button
+            onClick={() => handleToggleAllStatus('active')}
+            disabled={isSaving || projects.length === 0}
+            className="px-4 py-2 text-xs font-bold text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            🔓 Mở hoạt động tất cả
+          </button>
+          <button
+            onClick={() => handleToggleAllStatus('inactive')}
+            disabled={isSaving || projects.length === 0}
+            className="px-4 py-2 text-xs font-bold text-rose-400 border border-rose-500/30 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            🔒 Đóng tất cả
+          </button>
           <button 
             onClick={handleSeedData}
             disabled={isSaving}
