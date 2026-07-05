@@ -200,13 +200,18 @@ export default function ProfileTab({
         const data = doc.data();
         allTxs.push({ id: doc.id, ...data });
         
-        if (data.status === 'completed' || data.status === 'success' || data.status === 'Thành công') {
-          if (data.type === 'deposit' || data.type === 'investment' || data.type === 'plus') {
-            totalInvested += data.amount || 0;
-            if (data.interestRate) {
-              expectedProfit += (data.amount || 0) * (data.interestRate / 100);
-            }
-          }
+        if (data.type === 'investment' && data.status === 'Thành công' && data.settled !== true) {
+          const amt = data.amount || 0;
+          totalInvested += amt;
+          
+          const rateStr = data.interestRate || "1.50 %";
+          const rateVal = parseFloat(rateStr.replace(/[^0-9.]/g, '')) || 1.5;
+          
+          const durationStr = data.duration || "7200 phút";
+          const durationMinutes = parseInt(durationStr.replace(/[^0-9]/g, ''), 10) || 7200;
+          const days = durationMinutes / 1440;
+          
+          expectedProfit += Math.floor(amt * (rateVal / 100) * days);
         }
       });
 
@@ -219,12 +224,11 @@ export default function ProfileTab({
       setRecentTransactions(sorted.slice(0, 3));
 
       // Update stats based on transactions
-      setStats(prev => ({
-        ...prev,
-        transactions: txSnap.size,
+      setStats({
+        transactions: allTxs.length,
         invested: totalInvested,
-        expectedProfit: expectedProfit || (totalInvested * 0.15)
-      }));
+        expectedProfit: expectedProfit
+      });
     });
 
     const unsubUser = onSnapshot(doc(db, 'users', uid), (docSnap) => {
@@ -253,6 +257,9 @@ export default function ProfileTab({
         if (data.signature_content) {
           setSignature(data.signature_content);
           localStorage.setItem('vinclub_user_signature', data.signature_content);
+        }
+        if (data.withdrawPin) {
+          setStoredPin(data.withdrawPin);
         }
         if (data.bankName && data.bankAccount) {
           const bankInfo = {
@@ -442,11 +449,14 @@ export default function ProfileTab({
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [pinSuccess, setPinSuccess] = useState(false);
+  const [storedPin, setStoredPin] = useState<string>("");
 
   // Bank edit state
   const [bankSelect, setBankSelect] = useState("Vietcombank");
   const [bankAccount, setBankAccount] = useState("");
   const [bankOwner, setBankOwner] = useState(userName.toUpperCase());
+  const [bankPin, setBankPin] = useState("");
+  const [confirmBankPin, setConfirmBankPin] = useState("");
   const [bankSuccess, setBankSuccess] = useState(false);
 
   // Photo upload simulated state
@@ -541,8 +551,13 @@ export default function ProfileTab({
       setWithdrawError("Số dư tài khoản không đủ để thực hiện giao dịch này!");
       return;
     }
-    if (withdrawPin.length < 6) {
+    if (withdrawPin.length !== 6) {
       setWithdrawError("Mật khẩu rút tiền phải gồm 6 chữ số!");
+      return;
+    }
+    const savedPin = localStorage.getItem('vinclub_withdraw_pin') || storedPin;
+    if (savedPin && withdrawPin !== savedPin) {
+      setWithdrawError("Mật khẩu rút tiền (PIN) không chính xác!");
       return;
     }
     setWithdrawError("");
@@ -612,6 +627,15 @@ export default function ProfileTab({
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bankAccount) return;
+    if (bankPin.length !== 6) {
+      alert("Mật khẩu rút tiền (PIN) phải gồm đúng 6 chữ số!");
+      return;
+    }
+    if (bankPin !== confirmBankPin) {
+      alert("Xác nhận mật khẩu rút tiền không khớp!");
+      return;
+    }
+
     const info = {
       bankName: bankSelect,
       accountNum: bankAccount,
@@ -619,6 +643,7 @@ export default function ProfileTab({
     };
     setLinkedBank(info);
     localStorage.setItem('vinclub_linked_bank', JSON.stringify(info));
+    localStorage.setItem('vinclub_withdraw_pin', bankPin);
 
     const uid = auth.currentUser?.uid || userId;
     if (uid) {
@@ -626,6 +651,7 @@ export default function ProfileTab({
         bankName: bankSelect,
         bankAccount: bankAccount,
         bankOwner: bankOwner.toUpperCase(),
+        withdrawPin: bankPin,
         updatedAt: new Date().toISOString()
       };
 
@@ -647,6 +673,8 @@ export default function ProfileTab({
     setBankSuccess(true);
     setTimeout(() => {
       setBankSuccess(false);
+      setBankPin("");
+      setConfirmBankPin("");
       setActiveModal(null);
     }, 2000);
   };
@@ -875,10 +903,69 @@ export default function ProfileTab({
           {/* A. ACCOUNT SECTION */}
           <div className="space-y-2">
             <p className="px-1 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Tài khoản & Xác thực</p>
+            
+            {linkedBank && (
+              <div className="px-1 pb-1">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full relative rounded-2xl overflow-hidden shadow-lg border border-white/10 aspect-[1.58/1] flex flex-col justify-between p-4.5 text-white cursor-pointer group"
+                  onClick={() => setActiveModal('bank_link')}
+                >
+                  {/* Background Image */}
+                  <div className="absolute inset-0 z-0">
+                    <img 
+                      src="https://statics.vinpearl.com/vinclub-member_1723049424.png" 
+                      alt="Bank Card Background" 
+                      className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
+                  </div>
+
+                  {/* Card Top: Bank Logo / Chip */}
+                  <div className="relative z-10 flex justify-between items-start">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#e1b777]">VINCLUB VIP CARD</span>
+                      <h4 className="text-xs font-black tracking-wider uppercase mt-0.5">{linkedBank.bankName}</h4>
+                    </div>
+                    {/* Decorative Sim Card Chip */}
+                    <div className="w-8 h-6 bg-gradient-to-r from-amber-300 via-amber-200 to-yellow-400 rounded-md border border-amber-400/20 shadow-sm flex flex-col justify-between p-1 opacity-90">
+                      <div className="flex justify-between w-full h-1"><div className="w-1 bg-amber-600/30 rounded-sm"></div><div className="w-1 bg-amber-600/30 rounded-sm"></div></div>
+                      <div className="w-full h-0.5 bg-amber-600/20"></div>
+                      <div className="flex justify-between w-full h-1"><div className="w-1 bg-amber-600/30 rounded-sm"></div><div className="w-1 bg-amber-600/30 rounded-sm"></div></div>
+                    </div>
+                  </div>
+
+                  {/* Card Middle: Masked Account Number */}
+                  <div className="relative z-10 my-auto pt-2">
+                    <p className="text-[8px] text-neutral-300 uppercase tracking-widest font-mono">Số tài khoản liên kết</p>
+                    <p className="text-base font-black tracking-[0.12em] font-mono text-white drop-shadow-md">
+                      {(() => {
+                        const num = linkedBank.accountNum;
+                        const masked = maskBankAccount(num);
+                        return masked.replace(/(.{4})/g, '$1 ').trim();
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Card Bottom: Owner */}
+                  <div className="relative z-10 flex justify-between items-end">
+                    <div>
+                      <p className="text-[7px] text-neutral-400 uppercase tracking-widest leading-none">Chủ tài khoản</p>
+                      <p className="text-xs font-black tracking-wider uppercase mt-1 text-white">{linkedBank.accountOwner}</p>
+                    </div>
+                    <div className="px-2 py-0.5 rounded bg-black/40 border border-white/10 backdrop-blur-md text-[7px] font-black uppercase text-[#e1b777] tracking-widest">
+                      ĐÃ LIÊN KẾT
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl shadow-sm border border-neutral-100 overflow-hidden divide-y divide-neutral-50">
               <MenuItem 
                 icon={Building2} 
-                label="Liên kết ngân hàng" 
+                label={linkedBank ? "Thay đổi tài khoản ngân hàng" : "Liên kết ngân hàng"} 
                 onClick={() => setActiveModal('bank_link')}
                 colorClass="bg-amber-50 text-amber-600"
                 value={linkedBank ? `${linkedBank.bankName} - ${maskBankAccount(linkedBank.accountNum)}` : "Chưa liên kết"}
@@ -1127,9 +1214,41 @@ export default function ProfileTab({
                     />
                   </div>
 
+                  {/* Withdrawal PIN */}
+                  <div>
+                    <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Mật khẩu rút tiền (6 chữ số)</label>
+                    <input 
+                      type="password"
+                      maxLength={6}
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      required
+                      value={bankPin}
+                      onChange={(e) => setBankPin(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-3 text-xs font-bold focus:outline-none focus:border-[#96784d] text-neutral-800"
+                      placeholder="Nhập 6 số làm mật khẩu rút tiền..."
+                    />
+                  </div>
+
+                  {/* Confirm Withdrawal PIN */}
+                  <div>
+                    <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Xác nhận mật khẩu rút tiền</label>
+                    <input 
+                      type="password"
+                      maxLength={6}
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      required
+                      value={confirmBankPin}
+                      onChange={(e) => setConfirmBankPin(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full bg-neutral-50 border border-[#e1b777]/30 rounded-xl px-3.5 py-3 text-xs font-bold focus:outline-none focus:border-[#96784d] text-neutral-800"
+                      placeholder="Nhập lại mật khẩu rút tiền..."
+                    />
+                  </div>
+
                   <button 
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-neutral-900 font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all"
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-neutral-900 font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all cursor-pointer"
                   >
                     Xác nhận liên kết
                   </button>

@@ -1180,7 +1180,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="relative z-30 w-full h-full max-h-[750px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden cursor-pointer"
+                  className="absolute inset-0 z-30 w-full h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden cursor-pointer bg-[#f8f9fb]"
                   style={{ 
                     scrollBehavior: 'smooth', 
                     WebkitOverflowScrolling: 'touch',
@@ -1218,7 +1218,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="relative z-30 w-full h-full max-h-[750px] overflow-hidden cursor-pointer"
+                  className="absolute inset-0 z-30 w-full h-full overflow-hidden cursor-pointer bg-[#f4f4f4]"
                   onClick={() => setActiveTab('home')}
                 >
                   <div className="w-full h-full cursor-default" onClick={(e) => e.stopPropagation()}>
