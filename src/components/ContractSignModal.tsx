@@ -27,9 +27,17 @@ interface ContractSignModalProps {
     location: string;
     profit?: string;
     term?: string;
+    minInvestment?: string;
   };
   onRequestDeposit?: () => void;
 }
+
+const parseMinInvestment = (str?: string): number => {
+  if (!str) return 2000000;
+  const cleaned = str.replace(/[^0-9]/g, '');
+  const parsed = parseInt(cleaned, 10);
+  return isNaN(parsed) ? 2000000 : parsed;
+};
 
 export default function ContractSignModal({ 
   isOpen, 
@@ -42,7 +50,15 @@ export default function ContractSignModal({
 }: ContractSignModalProps) {
   
   const [step, setStep] = useState(1); // 1: Amount & Payment, 2: Sign Contract, 3: Success
-  const [amount, setAmount] = useState<number>(2000000);
+  const minVal = parseMinInvestment(projectDetails?.minInvestment);
+  const [amount, setAmount] = useState<number>(minVal);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAmount(minVal);
+      setStep(1); // reset step when modal opens
+    }
+  }, [isOpen, projectDetails?.minInvestment]);
   const [paymentMethod, setPaymentMethod] = useState('Số dư tài khoản VinClub');
   const [contractId] = useState(() => `VNC-${Math.floor(100000 + Math.random() * 900000)}`);
   
@@ -158,6 +174,12 @@ export default function ContractSignModal({
   };
 
   const handleContinueToSign = () => {
+    const minVal = parseMinInvestment(projectDetails?.minInvestment);
+    if (amount < minVal) {
+      alert(`Số tiền đầu tư không hợp lệ! Số tiền tối thiểu cho dự án này là ${minVal.toLocaleString('vi-VN')} VNĐ.`);
+      return;
+    }
+
     if (paymentMethod === 'Số dư tài khoản VinClub') {
       const currentBalance = userData?.balance || 0;
       if (amount > currentBalance) {
@@ -214,6 +236,9 @@ export default function ContractSignModal({
           contractId: contractId,
           signature_content: signatureData,
           rewardPoints: rewardPoints,
+          interestRate: projectDetails?.profit || "1.50 %",
+          duration: projectDetails?.term || "7200 phút",
+          settled: false, // Để đánh dấu chưa kết toán hoàn trả lãi gốc
           createdAt: serverTimestamp()
         });
       });
@@ -277,7 +302,7 @@ export default function ContractSignModal({
                   <h3 className="text-sm sm:text-lg font-serif font-semibold text-[#e1b777] mb-0 sm:mb-1">Cấu hình Hạn mức Ủy thác</h3>
                   <p className="text-[9px] sm:text-xs text-neutral-500 leading-tight">
                     Chọn số tiền đầu tư vào <strong className="text-white font-medium">{projectDetails?.location}</strong>. 
-                    Tối thiểu 2.000.000 VNĐ.
+                    Số tiền tối thiểu: <strong className="text-[#e1b777] font-semibold">{projectDetails?.minInvestment || '2.000.000 VNĐ'}</strong>.
                   </p>
                 </div>
 
@@ -301,7 +326,7 @@ export default function ContractSignModal({
 
                       {/* Quick select presets */}
                       <div className="grid grid-cols-2 gap-1.5 mt-2 sm:mt-4">
-                        {[2000000, 5000000, 10000000, 50000000].map(val => (
+                        {[minVal, minVal * 2, minVal * 5, minVal * 10].map(val => (
                           <button 
                             key={val}
                             type="button"
@@ -403,9 +428,7 @@ export default function ContractSignModal({
                       <h3 className="font-bold text-[#0f2b5c] uppercase tracking-wider text-[8px] sm:text-xs">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h3>
                       <p className="font-bold text-[#1e40af] underline decoration-1 underline-offset-4 text-[7px] sm:text-[10px]">Độc lập - Tự do - Hạnh phúc</p>
                       
-                      <div className="flex justify-center my-3">
-                        <ProgressiveImage src="/logo.png" alt="Vinclub logo" className="h-7 sm:h-10 w-auto opacity-90" imgClassName="object-contain mix-blend-multiply" />
-                      </div>
+                      {/* Removed logo to keep document formal */}
 
                       <h1 className="text-xs sm:text-lg font-bold text-[#0f2b5c] tracking-wider uppercase mt-1 mb-0.5">
                         HỢP ĐỒNG ỦY THÁC ĐẦU TƯ
@@ -791,19 +814,24 @@ export default function ContractSignModal({
                     </div>
 
                     {/* Stamp and Digital Signature */}
-                    <div className="pt-3 border-t border-dashed border-neutral-300 flex items-center justify-between gap-4">
+                    <div className="pt-3 border-t border-dashed border-neutral-300 flex items-center justify-between gap-4 relative">
                       <div className="text-left">
                         <span className="text-[8px] text-neutral-400 block uppercase font-mono leading-none">Chữ ký điện tử:</span>
-                        <div className="h-10 mt-1 flex items-center justify-start bg-white border border-neutral-100 rounded px-2 w-28">
+                        <div className="h-10 mt-1 flex items-center justify-start bg-white border border-neutral-100 rounded px-2 w-28 relative">
                           <img 
                             src={signatureData} 
                             alt="Signature" 
-                            className="max-h-full max-w-full object-contain" 
+                            className="max-h-full max-w-full object-contain z-10" 
                           />
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-3 relative z-10">
+                        {/* Luxury Certification Stamp */}
+                        <div className="w-12 h-12 relative flex items-center justify-center opacity-95 rotate-[-6deg]">
+                          <VinpearlStamp className="h-full w-full object-contain" opacity="0.9" />
+                        </div>
+
                         {/* QR Representation */}
                         <div className="w-11 h-11 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center shadow-sm">
                           <div className="grid grid-cols-4 gap-0.5 w-full h-full opacity-90">
@@ -817,17 +845,25 @@ export default function ContractSignModal({
                   </div>
 
                   {/* Receipt Footer */}
-                  <div className="bg-[#121218] p-3 text-center text-white/50 text-[8px] tracking-wider uppercase font-mono">
-                    Chứng thực số hóa bởi VinClub Security Gateway
+                  <div className="bg-[#121218] p-3 text-center text-white/50 text-[8px] tracking-wider uppercase font-mono flex items-center justify-center gap-1">
+                    <ShieldCheck size={10} className="text-[#e1b777]" /> Chứng thực số hóa bởi VinClub Security Gateway
                   </div>
                 </div>
 
-                <div className="pt-2 w-full max-w-xs shrink-0">
+                <div className="pt-2 w-full max-w-xs shrink-0 flex gap-3">
+                  <button 
+                    onClick={() => {
+                      alert("Đã lưu biên lai đầu tư đặc quyền vào thư viện ảnh thành công!");
+                    }}
+                    className="flex-1 py-3 bg-[#121218] border border-[#e1b777]/30 hover:bg-[#e1b777]/10 text-[#e1b777] font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 cursor-pointer"
+                  >
+                    📥 Tải Biên Lai
+                  </button>
                   <button 
                     onClick={onClose}
-                    className="w-full py-3 bg-gradient-to-r from-[#e1b777] to-[#c59e62] hover:from-[#c59e62] hover:to-[#e1b777] text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
+                    className="flex-1 py-3 bg-gradient-to-r from-[#e1b777] to-[#c59e62] hover:from-[#c59e62] hover:to-[#e1b777] text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
                   >
-                    Hoàn tất giao dịch
+                    Hoàn tất
                   </button>
                 </div>
               </motion.div>

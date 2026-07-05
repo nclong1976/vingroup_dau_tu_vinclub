@@ -13,7 +13,7 @@ import { LOCATIONS } from './data';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc, collection, onSnapshot, addDoc, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, onSnapshot, addDoc, query, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import QuickMenuGrid from './components/QuickMenuGrid';
 import ContractSignModal from './components/ContractSignModal';
 import ProgressiveImage from './components/ProgressiveImage';
@@ -186,6 +186,87 @@ export default function App() {
     }, (err) => console.error("Error listening to transactions:", err));
     return unsub;
   }, [userId]);
+
+  // Automatic Investment Maturity check
+  useEffect(() => {
+    if (!userId || !userData || realTransactions.length === 0) return;
+
+    const checkMaturity = async () => {
+      const now = new Date();
+      
+      const activeInvestments = realTransactions.filter(tx => 
+        tx.type === 'investment' && 
+        tx.status === 'Thành công' && 
+        tx.settled !== true
+      );
+
+      if (activeInvestments.length === 0) return;
+
+      for (const tx of activeInvestments) {
+        const durationStr = tx.duration || "7200 phút";
+        const durationMinutes = parseInt(durationStr.replace(/[^0-9]/g, ''), 10) || 7200;
+        
+        const createdDate = tx.createdAt?.seconds 
+          ? new Date(tx.createdAt.seconds * 1000)
+          : tx.date 
+            ? new Date(tx.date) 
+            : new Date();
+
+        const maturityDate = new Date(createdDate.getTime() + durationMinutes * 60 * 1000);
+
+        if (now >= maturityDate) {
+          console.log("Matured Investment detected:", tx.id, "Maturity Date:", maturityDate);
+          
+          try {
+            const rateStr = tx.interestRate || "1.50 %";
+            const rateVal = parseFloat(rateStr.replace(/[^0-9.]/g, '')) || 1.5;
+            
+            const days = durationMinutes / 1440;
+            
+            const profit = Math.floor(tx.amount * (rateVal / 100) * days);
+            const totalReturn = tx.amount + profit;
+
+            await runTransaction(db, async (transaction) => {
+              const userRef = doc(db, 'users', userId);
+              const userSnap = await transaction.get(userRef);
+              if (!userSnap.exists()) return;
+
+              const currentBalance = userSnap.data().balance || 0;
+              const txRef = doc(db, 'transactions', tx.id);
+              
+              transaction.update(txRef, { settled: true });
+              
+              transaction.update(userRef, { 
+                balance: currentBalance + totalReturn,
+                updatedAt: serverTimestamp()
+              });
+
+              const returnTxRef = doc(collection(db, 'transactions'));
+              transaction.set(returnTxRef, {
+                userId: userId,
+                userName: tx.userName || userData.name || 'Nhà Đầu Tư',
+                amount: totalReturn,
+                type: 'plus',
+                title: `Kết toán đầu tư: ${tx.title?.replace("Đầu tư: ", "") || "Dự án ủy thác"}`,
+                status: 'Thành công',
+                description: `Hoàn trả gốc và lãi suất ${rateStr} thời hạn ${durationStr}`,
+                createdAt: serverTimestamp()
+              });
+            });
+
+            alert(`🎉 Hợp đồng đầu tư ${tx.contractId || tx.id} đã đáo hạn thành công!\n\nSố tiền gốc & lãi tổng cộng ${totalReturn.toLocaleString('vi-VN')} VND đã được hoàn trả tự động vào tài khoản VinClub của bạn.`);
+
+          } catch (e) {
+            console.error("Error settling matured investment:", e);
+          }
+        }
+      }
+    };
+
+    const timer = setTimeout(checkMaturity, 1500);
+    return () => clearTimeout(timer);
+
+  }, [userId, realTransactions, userData]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'projects'), async (snap) => {

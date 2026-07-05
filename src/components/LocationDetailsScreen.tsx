@@ -164,6 +164,7 @@ export default function LocationDetailsScreen({ data, onClose, userName, onCompl
             location: data.location,
             profit: data.project?.interestRate || "1.5% / ngày",
             term: data.project?.duration || "6 ngày",
+            minInvestment: data.project?.minInvestment || "2.000.000 VNĐ",
           }}
           onComplete={(p) => onComplete && onComplete(p)}
         />

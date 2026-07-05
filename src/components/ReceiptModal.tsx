@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { X, CheckCircle, ShieldCheck } from 'lucide-react';
-import ProgressiveImage from './ProgressiveImage';
+import VinpearlStamp from './VinpearlStamp';
 
 interface ReceiptModalProps {
   tx: any;
@@ -113,15 +113,15 @@ export default function ReceiptModal({ tx, onClose, userData }: ReceiptModalProp
           </div>
 
           {/* Section 4: Signature Embed */}
-          <div className="pt-3 border-t border-dashed border-neutral-300 flex items-center justify-between gap-4">
+          <div className="pt-3 border-t border-dashed border-neutral-300 flex items-center justify-between gap-4 relative">
             <div className="text-left">
               <span className="text-[8px] text-neutral-400 block uppercase font-mono leading-none">Chữ ký điện tử đối chiếu:</span>
               {tx.signature_content ? (
-                <div className="h-10 mt-1 flex items-center justify-start bg-white border border-neutral-100 rounded px-2 w-28 shadow-sm">
+                <div className="h-10 mt-1 flex items-center justify-start bg-white border border-neutral-100 rounded px-2 w-28 shadow-sm relative">
                   <img 
                     src={tx.signature_content} 
                     alt="Digital Signature" 
-                    className="max-h-full max-w-full object-contain" 
+                    className="max-h-full max-w-full object-contain z-10" 
                   />
                 </div>
               ) : (
@@ -129,7 +129,12 @@ export default function ReceiptModal({ tx, onClose, userData }: ReceiptModalProp
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-3 relative z-10">
+              {/* Luxury Certification Stamp */}
+              <div className="w-12 h-12 relative flex items-center justify-center opacity-95 rotate-[-6deg]">
+                <VinpearlStamp className="h-full w-full object-contain" opacity="0.9" />
+              </div>
+
               {/* QR Representation */}
               <div className="w-11 h-11 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center shadow-sm">
                 <div className="grid grid-cols-4 gap-0.5 w-full h-full opacity-90">
@@ -140,6 +145,24 @@ export default function ReceiptModal({ tx, onClose, userData }: ReceiptModalProp
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="p-4 bg-[#fbfbfe] border-t border-neutral-100 flex gap-3">
+          <button 
+            onClick={() => {
+              alert("Đã lưu biên lai đầu tư đặc quyền vào thư viện ảnh thành công!");
+            }}
+            className="flex-1 py-3 bg-[#121218] border border-[#e1b777]/30 hover:bg-[#e1b777]/10 text-[#e1b777] font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 cursor-pointer text-center"
+          >
+            📥 Tải Biên Lai
+          </button>
+          <button 
+            onClick={onClose}
+            className="flex-1 py-3 bg-gradient-to-r from-[#e1b777] to-[#c59e62] hover:from-[#c59e62] hover:to-[#e1b777] text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer text-center"
+          >
+            Đóng
+          </button>
         </div>
 
         {/* Footer (VinClub certified stamp footer) */}
