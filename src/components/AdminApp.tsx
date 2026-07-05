@@ -2958,7 +2958,10 @@ function ChatAdmin() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+        <div 
+          className="flex-1 overflow-y-auto divide-y divide-gray-50 overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {filteredUsersList.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">
               Không tìm thấy cuộc hội thoại nào.
@@ -3050,7 +3053,10 @@ function ChatAdmin() {
           </div>
 
           {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+          <div 
+            className="flex-1 overflow-y-auto px-6 py-6 space-y-4 overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {filteredMessages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <FileText className="w-12 h-12 mb-2 stroke-[1.2]" />
@@ -3876,7 +3882,10 @@ export default function AdminApp() {
               </div>
             )}
           </div>
-          <nav className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-none">
+          <nav 
+            className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-none overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <Link to="/admin" className={navItemClass('/admin')}>Tổng quan</Link>
             <Link to="/admin/projects" className={navItemClass('/admin/projects')}>Dự án</Link>
             <Link to="/admin/registrations" className={navItemClass('/admin/registrations')}>Người dùng</Link>
@@ -3901,7 +3910,10 @@ export default function AdminApp() {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto bg-[#070709] scroll-smooth min-h-0">
+      <div 
+        className="flex-1 overflow-y-auto bg-[#070709] scroll-smooth min-h-0 overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <Routes>
           <Route path="/" element={<DashboardAdmin />} />
           <Route path="/projects" element={<ProjectsAdmin />} />
