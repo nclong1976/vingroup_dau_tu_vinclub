@@ -23,6 +23,10 @@ export default function LocationDetailsScreen({ data, onClose, userName, onCompl
   const progress = data.project?.progress || 0;
 
   const handleInvest = () => {
+    if (data.project?.status === 'inactive') {
+      alert("Dự án đầu tư này đang đóng.");
+      return;
+    }
     setShowContractSign(true);
   };
 

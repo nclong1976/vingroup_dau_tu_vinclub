@@ -32,7 +32,6 @@ export default function AllProjectsPage({ projects, onBack, onSelectProject }: A
   const categories = ['Tất cả', ...Array.from(new Set(projects.map(p => p.category).filter(Boolean) as string[]))];
 
   const filteredProjects = projects.filter(p => {
-    if (p.status !== 'active') return false; // Chỉ hiển thị các dự án đang hoạt động
     const matchCategory = activeCategory === 'Tất cả' || p.category === activeCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         (p.customId && p.customId.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -125,6 +124,11 @@ export default function AllProjectsPage({ projects, onBack, onSelectProject }: A
                       <span className="text-[8px] font-black text-white uppercase tracking-widest bg-black/60 backdrop-blur-md px-2.5 py-1 rounded border border-white/10">
                         {proj.category || "Hạng mục"}
                       </span>
+                      {proj.status === 'inactive' && (
+                        <span className="text-[8px] font-black text-rose-400 uppercase tracking-widest bg-rose-950/80 backdrop-blur-md px-2.5 py-1 rounded border border-rose-500/20">
+                          Tạm đóng
+                        </span>
+                      )}
                     </div>
                     {proj.customId && (
                       <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded text-[8px] font-mono text-neutral-300 font-bold border border-white/5">
@@ -179,11 +183,21 @@ export default function AllProjectsPage({ projects, onBack, onSelectProject }: A
 
                     {/* Action Button */}
                     <button
-                      onClick={() => onSelectProject(proj)}
-                      className="w-full mt-1.5 py-2.5 bg-gradient-to-b from-[#d4af37] to-[#aa7c11] hover:from-[#e1b777] hover:to-[#c69a3f] active:scale-[0.98] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                      onClick={() => {
+                        if (proj.status === 'inactive') {
+                          alert("Dự án đầu tư này đang đóng.");
+                          return;
+                        }
+                        onSelectProject(proj);
+                      }}
+                      className={`w-full mt-1.5 py-2.5 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer ${
+                        proj.status === 'inactive'
+                          ? 'bg-neutral-800 border border-neutral-700 text-neutral-400 active:scale-[0.98]'
+                          : 'bg-gradient-to-b from-[#d4af37] to-[#aa7c11] hover:from-[#e1b777] hover:to-[#c69a3f] active:scale-[0.98]'
+                      }`}
                     >
                       <TrendingUp className="w-3.5 h-3.5" />
-                      Tham gia đầu tư
+                      {proj.status === 'inactive' ? 'Dự án đang đóng' : 'Tham gia đầu tư'}
                     </button>
                   </div>
                 </motion.div>

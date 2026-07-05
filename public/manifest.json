@@ -1,0 +1,24 @@
+{
+  "short_name": "VinClub",
+  "name": "VinClub - Hệ sinh thái Đặc quyền Thượng lưu Vingroup",
+  "description": "Ứng dụng đầu tư đặc quyền thuộc hệ sinh thái VinClub Vingroup.",
+  "icons": [
+    {
+      "src": "https://play-lh.googleusercontent.com/pgCyuXvyiq72xaDy66l4gUAJPCXdKaSqd9_MWp98Jo8fKSV066FyHZ25CGUUlkNFgtOdUtdf3EnCfKMYAbYuGQ",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://play-lh.googleusercontent.com/pgCyuXvyiq72xaDy66l4gUAJPCXdKaSqd9_MWp98Jo8fKSV066FyHZ25CGUUlkNFgtOdUtdf3EnCfKMYAbYuGQ",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "display": "standalone",
+  "orientation": "portrait"
+}

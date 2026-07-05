@@ -27,8 +27,7 @@ export default function Globe({ userPhoto, projects = [], lockVerticalMotion = t
     const rawPositions = generateFibonacciSphere(count, GLOBE_RADIUS);
     return rawPositions.map((pos) => ({
       position: pos,
-      // Random scale between 0.6x and 1.3x to make size uneven but keeping orientation
-      scale: 0.6 + Math.random() * 0.7 
+      scale: 0.85
     }));
   }, [projects.length]);
 
@@ -76,24 +75,8 @@ export default function Globe({ userPhoto, projects = [], lockVerticalMotion = t
     <group ref={groupRef}>
       {cardData.map((data, i) => {
         const project = i < projects.length ? projects[i] : undefined;
-        
-        let position = data.position;
-        let scale = data.scale;
-        
-        // Convert geographical coordinates (lat, lng) to Vector3 on 3D sphere if explicitly specified by Admin
-        if (project && typeof project.lat === 'number' && typeof project.lng === 'number') {
-          const lat = project.lat;
-          const lng = project.lng;
-          
-          const phi = (90 - lat) * (Math.PI / 180);
-          const theta = (lng + 180) * (Math.PI / 180);
-
-          const x = -(GLOBE_RADIUS * Math.sin(phi) * Math.sin(theta));
-          const y = GLOBE_RADIUS * Math.cos(phi);
-          const z = GLOBE_RADIUS * Math.sin(phi) * Math.cos(theta);
-          
-          position = new THREE.Vector3(x, y, z);
-        }
+        const position = data.position;
+        const scale = data.scale;
 
         return (
           <Card 
