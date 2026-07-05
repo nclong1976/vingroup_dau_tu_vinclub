@@ -591,6 +591,23 @@ export default function ProfileTab({
         title: "Rút tiền về ngân hàng"
       };
       await addDoc(collection(db, 'transactions'), newTx);
+
+      try {
+        fetch('/api/telegram/notify-withdraw', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: uid,
+            userName: userName || "Nhà Đầu Tư",
+            amount: amount,
+            bankInfo: linkedBank ? `${linkedBank.bankName} - ${linkedBank.accountNum}` : withdrawBank,
+          }),
+        });
+      } catch (err) {
+        console.error("Error sending withdraw notification to Telegram:", err);
+      }
       
       setWithdrawSuccess(true);
       setTimeout(() => {
