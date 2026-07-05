@@ -975,7 +975,7 @@ export default function App() {
                               </h5>
                               <span className="text-[8px] text-gray-500 font-mono">{getRelativeTime(notif.timestamp)}</span>
                             </div>
-                            <p className="text-[10px] text-gray-400 leading-relaxed font-sans">{notif.content}</p>
+                            <p className="text-[10px] text-gray-400 leading-relaxed font-sans whitespace-pre-wrap">{notif.content}</p>
                             {notif.imageUrl && <ProgressiveImage src={notif.imageUrl} alt="Notification image" className="mt-2 h-32 w-full rounded-lg" imgClassName="object-cover" />}
                           </div>
                         ))}
