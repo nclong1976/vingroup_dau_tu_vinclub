@@ -158,7 +158,14 @@ export default function App() {
   const [isLoadingGlobe, setIsLoadingGlobe] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'home' | 'vip' | 'profile' | 'support'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'vip' | 'profile' | 'support'>(() => {
+    return (localStorage.getItem('vinclub_active_tab') as 'home' | 'vip' | 'profile' | 'support') || 'home';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vinclub_active_tab', activeTab);
+  }, [activeTab]);
+
 
   const [appView, setAppView] = useState<'main' | 'all-news' | 'all-projects'>('main');
   const [selectedNews, setSelectedNews] = useState<any>(null);
@@ -571,6 +578,27 @@ export default function App() {
           navigate('/admin');
         } else {
           setIsAdmin(false);
+          const localUserStr = localStorage.getItem('vinclub_local_user');
+          if (!localUserStr) {
+            getDoc(doc(db, 'users', user.uid)).then((docSnap) => {
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.fullName) setUserName(data.fullName);
+                if (data.photoUrl) setUserPhoto(data.photoUrl);
+                if (data.points) setPoints(data.points);
+                if (data.rank) setRank(data.rank);
+                if (data.memberId) setMemberId(data.memberId);
+                localStorage.setItem('vinclub_local_user', JSON.stringify({
+                  fullName: data.fullName || "Nhà Đầu Tư",
+                  photoUrl: data.photoUrl || "/new-test.png",
+                  points: data.points || 0,
+                  rank: data.rank || "THÀNH VIÊN / MEMBER",
+                  memberId: data.memberId || "",
+                  userId: user.uid
+                }));
+              }
+            }).catch(err => console.error("Error restoring user profile from auth:", err));
+          }
         }
       } else {
         const localUserStr = localStorage.getItem('vinclub_local_user');
@@ -655,6 +683,7 @@ export default function App() {
       console.error("Error signing out:", err);
     }
     localStorage.removeItem('vinclub_local_user');
+    localStorage.removeItem('vinclub_active_tab');
     setUserPhoto(null);
     setUserId(null);
     setUserName("Trần Duy Thái");

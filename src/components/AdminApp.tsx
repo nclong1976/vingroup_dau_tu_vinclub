@@ -3832,7 +3832,7 @@ export default function AdminApp() {
   const currentAdminEmail = localStorage.getItem('admin_email') || 'admin@gmail.com';
 
   return (
-    <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col md:flex-row font-sans overflow-hidden">
+    <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col md:flex-row font-sans">
       
       {/* MOBILE TOP HEADER BAR */}
       <div className="h-14 bg-[#0c0c10] border-b border-[#e1b777]/10 flex items-center justify-between px-4 md:hidden shrink-0 z-30">
@@ -3858,7 +3858,7 @@ export default function AdminApp() {
       )}
 
       {/* SIDEBAR SIDE PANEL (RESPONSIVE DRAWER ON MOBILE, FIXED SIDEBAR ON DESKTOP) */}
-      <div className={`fixed inset-y-0 left-0 w-64 bg-[#0c0c10] border-r border-[#e1b777]/10 p-5 flex flex-col justify-between shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 w-64 bg-[#0c0c10] border-r border-[#e1b777]/10 p-5 flex flex-col justify-between shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div>
@@ -3911,8 +3911,7 @@ export default function AdminApp() {
 
       {/* MAIN CONTENT AREA */}
       <div 
-        className="flex-1 overflow-y-auto bg-[#070709] scroll-smooth min-h-0 overscroll-contain"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="flex-1 bg-[#070709] min-w-0"
       >
         <Routes>
           <Route path="/" element={<DashboardAdmin />} />
