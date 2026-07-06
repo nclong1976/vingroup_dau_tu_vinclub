@@ -401,12 +401,16 @@ app.post('/api/generate-video', async (req, res) => {
   }
 });
 
-// Daily Interest Distribution Endpoint (Simulated CRON Job trigger)
-app.post('/api/admin/distribute-interest', async (req, res) => {
+// Daily Interest Distribution Endpoint (Automated Vercel CRON Job & Manual trigger)
+app.all('/api/admin/distribute-interest', async (req, res) => {
   try {
-    const { secret } = req.body;
-    // Basic security check
-    if (secret !== 'vinclub-internal-cron-key') {
+    const authHeader = req.headers.authorization;
+    const isVercelCron = authHeader && process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    
+    const bodySecret = req.body?.secret || req.query?.secret;
+    const isManualBypass = bodySecret === 'vinclub-internal-cron-key';
+
+    if (!isVercelCron && !isManualBypass) {
       return res.status(403).json({ success: false, error: "Unauthorized" });
     }
 
