@@ -14,6 +14,7 @@ import {
   HelpCircle, Settings, Wallet, ArrowDown, ArrowUp, DollarSign,
   TrendingDown, Bell, ShieldCheck, History
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Helper to mask bank account number: only show last 4 digits, hide others with *
 const maskBankAccount = (accountNum: string): string => {
@@ -160,6 +161,7 @@ export default function ProfileTab({
   });
 
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
   useEffect(() => {
     const uid = auth.currentUser?.uid || userId;
@@ -236,6 +238,7 @@ export default function ProfileTab({
         return dateB - dateA;
       });
       setRecentTransactions(sorted.slice(0, 3));
+      setAllTransactions(sorted);
 
       // Update stats based on transactions
       setStats({
@@ -1047,6 +1050,110 @@ export default function ProfileTab({
             </div>
           </div>
         </div>
+
+        {/* 5.5 PROFIT GROWTH CHART CARD */}
+        {(() => {
+          const profitTxs = allTransactions
+            .filter(tx => tx.type === 'plus' && (tx.title?.toLowerCase().includes('kết toán') || tx.title?.toLowerCase().includes('lãi')))
+            .sort((a, b) => {
+              const dateA = a.createdAt?.seconds 
+                ? a.createdAt.seconds * 1000 
+                : new Date(a.date || 0).getTime();
+              const dateB = b.createdAt?.seconds 
+                ? b.createdAt.seconds * 1000 
+                : new Date(b.date || 0).getTime();
+              return dateA - dateB;
+            });
+
+          let cumulativeProfit = 0;
+          const chartData = profitTxs.map(tx => {
+            cumulativeProfit += tx.amount || 0;
+            const dateLabel = tx.createdAt?.seconds 
+              ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' })
+              : tx.date 
+                ? new Date(tx.date).toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' }) 
+                : '';
+            return {
+              date: dateLabel,
+              "Lợi nhuận": cumulativeProfit
+            };
+          });
+
+          // Make sure we have at least 2 points to show a nice curve
+          if (chartData.length === 0) {
+            chartData.push({ date: 'Khởi điểm', "Lợi nhuận": 0 });
+            chartData.push({ date: 'Hiện tại', "Lợi nhuận": 0 });
+          } else if (chartData.length === 1) {
+            chartData.unshift({ date: 'Khởi điểm', "Lợi nhuận": 0 });
+          }
+
+          return (
+            <div className="w-full space-y-3">
+              <div className="flex justify-between items-center px-1">
+                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Biểu đồ hiệu quả đầu tư</h4>
+                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Tổng Lãi: {cumulativeProfit.toLocaleString()} VNĐ
+                </span>
+              </div>
+              <div className="bg-white rounded-3xl p-5 border border-neutral-100 shadow-sm">
+                <div className="mb-4">
+                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Tăng trưởng lợi nhuận (VND)</span>
+                  <div className="text-xl font-black text-neutral-800 font-mono mt-0.5">+{cumulativeProfit.toLocaleString()} VNĐ</div>
+                </div>
+                
+                <div className="w-full h-[180px] text-xs">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#d97706" stopOpacity={0.25}/>
+                          <stop offset="95%" stopColor="#d97706" stopOpacity={0.01}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickLine={false} 
+                        axisLine={false} 
+                        stroke="#9ca3af" 
+                        style={{ fontSize: '9px', fontWeight: 'bold' }} 
+                      />
+                      <YAxis 
+                        tickLine={false} 
+                        axisLine={false} 
+                        stroke="#9ca3af" 
+                        style={{ fontSize: '9px', fontWeight: 'bold' }}
+                        tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#171717', 
+                          borderRadius: '16px', 
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#fff',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }}
+                        labelStyle={{ color: '#9ca3af', marginBottom: '4px' }}
+                        itemStyle={{ color: '#fbbf24' }}
+                        formatter={(value: any) => [`${value.toLocaleString()} VNĐ`, "Lợi nhuận"]}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="Lợi nhuận" 
+                        stroke="#d97706" 
+                        strokeWidth={2.5}
+                        fillOpacity={1} 
+                        fill="url(#colorProfit)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 6. RECENT TRANSACTIONS */}
         {recentTransactions.length > 0 && (

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, increment, query, orderBy, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase';
-import { CheckCircle, XCircle, Clock, ArrowDownLeft, ArrowUpRight, CheckSquare, Square, Eye, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, ArrowDownLeft, ArrowUpRight, CheckSquare, Square, Eye, X, FileText } from 'lucide-react';
 
 interface Transaction {
   id: string;
   userId: string;
-  type: 'deposit' | 'withdraw' | 'plus' | 'minus';
+  type: 'deposit' | 'withdraw' | 'plus' | 'minus' | 'investment';
   amount: number;
   status: 'Đang chờ duyệt' | 'Thành công' | 'Từ chối' | 'pending' | 'completed' | 'rejected';
   createdAt: string;
@@ -14,6 +14,11 @@ interface Transaction {
   paymentMethod?: string;
   userName?: string;
   description?: string;
+  title?: string;
+  contractId?: string;
+  signature_content?: string;
+  interestRate?: string;
+  duration?: string;
 }
 
 export default function TransactionsAdmin() {
@@ -21,6 +26,7 @@ export default function TransactionsAdmin() {
   const [selectedTxIds, setSelectedTxIds] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [viewingProof, setViewingProof] = useState<Transaction | null>(null);
+  const [filterTab, setFilterTab] = useState<'all' | 'finance' | 'investment'>('all');
 
   useEffect(() => {
     const q = query(collection(db, 'transactions'), orderBy('date', 'desc'));
@@ -137,7 +143,17 @@ export default function TransactionsAdmin() {
 
   const isPending = (status: string) => status === 'pending' || status === 'Đang chờ duyệt';
 
-  const pendingTxs = transactions.filter(tx => isPending(tx.status));
+  const filteredTxs = transactions.filter(tx => {
+    if (filterTab === 'finance') {
+      return tx.type === 'deposit' || tx.type === 'withdraw' || tx.type === 'plus' || tx.type === 'minus';
+    }
+    if (filterTab === 'investment') {
+      return tx.type === 'investment';
+    }
+    return true;
+  });
+
+  const pendingTxs = filteredTxs.filter(tx => isPending(tx.status));
   const allPendingSelected = pendingTxs.length > 0 && selectedTxIds.size === pendingTxs.length;
 
   const toggleSelectAll = () => {
@@ -150,10 +166,13 @@ export default function TransactionsAdmin() {
 
   return (
     <div className="p-6 bg-white min-h-screen text-gray-800 font-sans">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
-          Phê duyệt Giao dịch
-        </h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
+            Quản lý & Phê duyệt Giao dịch
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">Duyệt nạp/rút tiền tài khoản và hồ sơ ký kết hợp đồng góp vốn</p>
+        </div>
         
         {pendingTxs.length > 0 && (
           <div className="flex items-center gap-4 bg-gray-50 p-2 px-4 rounded-lg border border-gray-200 shadow-sm">
@@ -190,8 +209,30 @@ export default function TransactionsAdmin() {
         )}
       </div>
 
+      {/* FILTER TABS */}
+      <div className="flex bg-gray-100 border border-gray-200 rounded-xl p-1 gap-1 mb-6 max-w-md">
+        <button
+          onClick={() => setFilterTab('all')}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${filterTab === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Tất cả
+        </button>
+        <button
+          onClick={() => setFilterTab('finance')}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${filterTab === 'finance' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Nạp / Rút tiền
+        </button>
+        <button
+          onClick={() => setFilterTab('investment')}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${filterTab === 'investment' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Hợp đồng Góp vốn
+        </button>
+      </div>
+
       <div className="grid gap-4">
-        {transactions.map((tx) => (
+        {filteredTxs.map((tx) => (
           <div key={tx.id} className={`bg-white border ${selectedTxIds.has(tx.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-gray-100'} rounded-2xl p-5 flex items-center justify-between shadow-sm transition-all hover:shadow-md`}>
             <div className="flex items-center gap-4">
               {isPending(tx.status) && (
@@ -204,22 +245,44 @@ export default function TransactionsAdmin() {
                 </div>
               )}
               
-              <div className={`p-3 rounded-2xl ${tx.type === 'plus' || tx.type === 'deposit' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'} ${!isPending(tx.status) ? 'ml-8' : ''}`}>
-                {tx.type === 'plus' || tx.type === 'deposit' ? <ArrowDownLeft size={24} /> : <ArrowUpRight size={24} />}
+              <div className={`p-3 rounded-2xl ${
+                tx.type === 'investment'
+                  ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                  : (tx.type === 'plus' || tx.type === 'deposit')
+                    ? 'bg-green-50 text-green-600'
+                    : 'bg-red-50 text-red-600'
+              } ${!isPending(tx.status) ? 'ml-8' : ''}`}>
+                {tx.type === 'investment' ? (
+                  <FileText size={24} />
+                ) : (tx.type === 'plus' || tx.type === 'deposit') ? (
+                  <ArrowDownLeft size={24} />
+                ) : (
+                  <ArrowUpRight size={24} />
+                )}
               </div>
               <div>
                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">
-                  {tx.type === 'plus' || tx.type === 'deposit' ? 'Lệnh Nạp Tiền' : 'Lệnh Rút Tiền'}
+                  {tx.type === 'investment' ? (
+                    `Hợp Đồng Góp Vốn: ${tx.title?.replace('Đầu tư: ', '') || 'Dự án Đặc quyền'}`
+                  ) : (tx.type === 'plus' || tx.type === 'deposit') ? (
+                    'Lệnh Nạp Tiền'
+                  ) : (
+                    'Lệnh Rút Tiền'
+                  )}
                 </p>
                 <p className="text-[11px] font-bold text-gray-400 uppercase mt-0.5">Mã ID: <span className="font-mono text-gray-600 tracking-normal">{tx.userId}</span></p>
                 <p className="text-[11px] font-medium text-gray-500 mt-1">
-                  {tx.description ? (
+                  {tx.type === 'investment' ? (
+                    <>Khách hàng: <span className="font-bold text-gray-700">{tx.userName || 'Ẩn danh'}</span> | Lãi suất: <span className="font-bold text-amber-600">{tx.interestRate || '1.85%'}</span> | Kỳ hạn: <span className="font-bold text-amber-600">{tx.duration || '1440 phút'}</span></>
+                  ) : tx.description ? (
                     <span className="text-amber-600 font-bold">{tx.description}</span>
                   ) : (
                     <>Khách hàng: <span className="font-bold text-gray-700">{tx.userName || 'Ẩn danh'}</span> | PT: {tx.paymentMethod?.toUpperCase() || 'NGÂN HÀNG'}</>
                   )}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-0.5 font-medium">{new Date(tx.date || tx.createdAt).toLocaleString('vi-VN')}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                  {tx.date || tx.createdAt ? new Date(tx.date || tx.createdAt).toLocaleString('vi-VN') : ''}
+                </p>
               </div>
             </div>
 
@@ -230,12 +293,18 @@ export default function TransactionsAdmin() {
                     onClick={() => setViewingProof(tx)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
                   >
-                    <Eye size={12} /> Xem minh chứng
+                    <Eye size={12} /> Xem Chữ Ký / HĐ
                   </button>
                 )}
                 <div className="text-right">
-                  <p className={`text-2xl font-black ${tx.type === 'plus' || tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'plus' || tx.type === 'deposit' ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} <span className="text-xs font-bold">VNĐ</span>
+                  <p className={`text-2xl font-black ${
+                    tx.type === 'investment' 
+                      ? 'text-amber-600' 
+                      : (tx.type === 'plus' || tx.type === 'deposit') 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                  }`}>
+                    {tx.type === 'investment' ? '' : (tx.type === 'plus' || tx.type === 'deposit') ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} <span className="text-xs font-bold">VNĐ</span>
                   </p>
                   <div className="flex items-center justify-end gap-1.5 mt-1">
                     {isPending(tx.status) && <><Clock size={12} className="text-amber-500" /><span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Chờ duyệt</span></>}
@@ -269,8 +338,8 @@ export default function TransactionsAdmin() {
           </div>
         ))}
 
-        {transactions.length === 0 && (
-          <p className="text-center text-gray-500 mt-10">Không có giao dịch nào.</p>
+        {filteredTxs.length === 0 && (
+          <p className="text-center text-gray-500 mt-10">Không có bản ghi giao dịch nào phù hợp.</p>
         )}
       </div>
 
@@ -286,12 +355,22 @@ export default function TransactionsAdmin() {
             
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <div>
-                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Minh Chứng Giao Dịch</h3>
-                <p className="text-xs font-bold text-gray-500 mt-1 uppercase tracking-widest">Mã giao dịch: {viewingProof.id}</p>
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                  {viewingProof.type === 'investment' ? 'Hợp Đồng Điện Tử (Chữ ký)' : 'Minh Chứng Giao Dịch'}
+                </h3>
+                <p className="text-xs font-bold text-gray-500 mt-1 uppercase tracking-widest">
+                  {viewingProof.type === 'investment' ? `Mã Hợp Đồng: ${viewingProof.contractId || viewingProof.id}` : `Mã giao dịch: ${viewingProof.id}`}
+                </p>
               </div>
               <div className="text-right">
-                 <p className={`text-2xl font-black ${viewingProof.type === 'plus' || viewingProof.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                    {viewingProof.type === 'plus' || viewingProof.type === 'deposit' ? '+' : '-'}{viewingProof.amount.toLocaleString('vi-VN')} VNĐ
+                 <p className={`text-2xl font-black ${
+                   viewingProof.type === 'investment' 
+                     ? 'text-amber-600' 
+                     : (viewingProof.type === 'plus' || viewingProof.type === 'deposit') 
+                       ? 'text-green-600' 
+                       : 'text-red-600'
+                 }`}>
+                    {viewingProof.amount.toLocaleString('vi-VN')} VNĐ
                   </p>
                   <p className="text-[10px] font-bold text-gray-400 uppercase">{viewingProof.userName || 'Người dùng'}</p>
               </div>

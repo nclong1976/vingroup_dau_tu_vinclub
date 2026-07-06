@@ -243,6 +243,19 @@ export default function ContractSignModal({
         });
       });
 
+      // 2.5 Send automated support confirmation chat message
+      try {
+        await addDoc(collection(db, 'support_chat'), {
+          userId: userData.uid,
+          sender: 'admin',
+          senderEmail: 'admin@gmail.com',
+          text: `🔔 XÁC NHẬN ĐẦU TƯ THÀNH CÔNG\n\nHệ thống VinClub xác nhận Quý khách đã hoàn tất đầu tư:\n\n• Dự án: ${projectDetails?.location || 'Dự án Đặc quyền VinClub'}\n• Số tiền: ${amount.toLocaleString('vi-VN')} VND\n• Lợi nhuận dự kiến: ${projectDetails?.profit || '1.85%'}\n• Kỳ hạn: ${projectDetails?.term || '1440 phút'}\n\nCảm ơn Quý khách đã tin tưởng và đồng hành cùng VinClub!`,
+          createdAt: serverTimestamp()
+        });
+      } catch (chatErr) {
+        console.error("Error creating auto confirmation chat message:", chatErr);
+      }
+
       // 3. Move to success screen
       setStep(3);
       if (onComplete) onComplete(0); // Pass 0 as it's already handled in Firestore transaction
