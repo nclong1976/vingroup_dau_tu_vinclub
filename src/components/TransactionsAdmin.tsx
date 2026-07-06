@@ -29,10 +29,24 @@ export default function TransactionsAdmin() {
   const [filterTab, setFilterTab] = useState<'all' | 'finance' | 'investment'>('all');
 
   useEffect(() => {
-    const q = query(collection(db, 'transactions'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'transactions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const txs: Transaction[] = [];
       snapshot.forEach((doc) => txs.push({ id: doc.id, ...doc.data() } as Transaction));
+      
+      // Sort in memory safely to support mixed format dates and firebase timestamps
+      txs.sort((a, b) => {
+        const getMs = (val: any) => {
+          if (!val) return 0;
+          if (val.seconds) return val.seconds * 1000;
+          if (val.toDate) return val.toDate().getTime();
+          return new Date(val).getTime() || 0;
+        };
+        const dateA = getMs(a.date) || getMs(a.createdAt) || 0;
+        const dateB = getMs(b.date) || getMs(b.createdAt) || 0;
+        return dateB - dateA;
+      });
+      
       setTransactions(txs);
       
       // Clean up selected IDs that might no longer be pending or exist

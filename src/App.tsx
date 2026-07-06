@@ -204,8 +204,14 @@ export default function App() {
     const unsub = onSnapshot(txQuery, (snap) => {
       const txs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       txs.sort((a: any, b: any) => {
-        const dateA = new Date(a.date || a.createdAt || 0).getTime();
-        const dateB = new Date(b.date || b.createdAt || 0).getTime();
+        const getMs = (val: any) => {
+          if (!val) return 0;
+          if (val.seconds) return val.seconds * 1000;
+          if (val.toDate) return val.toDate().getTime();
+          return new Date(val).getTime() || 0;
+        };
+        const dateA = getMs(a.date) || getMs(a.createdAt) || 0;
+        const dateB = getMs(b.date) || getMs(b.createdAt) || 0;
         return dateB - dateA;
       });
       setRealTransactions(txs);

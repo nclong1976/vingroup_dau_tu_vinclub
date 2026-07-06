@@ -231,10 +231,16 @@ export default function ProfileTab({
         }
       });
 
-      // Sort and get top 3
+      // Sort and get top 3 safely supporting mixed format dates and firebase timestamps
       const sorted = allTxs.sort((a, b) => {
-        const dateA = new Date(a.date || a.createdAt || 0).getTime();
-        const dateB = new Date(b.date || b.createdAt || 0).getTime();
+        const getMs = (val: any) => {
+          if (!val) return 0;
+          if (val.seconds) return val.seconds * 1000;
+          if (val.toDate) return val.toDate().getTime();
+          return new Date(val).getTime() || 0;
+        };
+        const dateA = getMs(a.date) || getMs(a.createdAt) || 0;
+        const dateB = getMs(b.date) || getMs(b.createdAt) || 0;
         return dateB - dateA;
       });
       setRecentTransactions(sorted.slice(0, 3));
