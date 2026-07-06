@@ -9,7 +9,7 @@ import TransactionsAdmin from './TransactionsAdmin';
 import ProjectStackedDeck from './ProjectStackedDeck';
 import { LOCATIONS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy, limit, getDocs, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { 
   Send, 
   Paperclip, 
@@ -3577,7 +3577,14 @@ function NotificationsAdmin() {
 }
 
 function SystemAdmin() {
-  const [settings, setSettings] = useState<any>({ broadcast: '', lockVerticalMotion: false });
+  const [settings, setSettings] = useState<any>({ 
+    broadcast: '', 
+    lockVerticalMotion: false,
+    interestRateMember: 0.4,
+    interestRateGold: 0.8,
+    interestRatePlatinum: 1.2,
+    interestRateDiamond: 2.0
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message: string }>({ type: 'idle', message: '' });
   const [result, setResult] = useState<any>(null);
@@ -3596,7 +3603,7 @@ function SystemAdmin() {
     setIsSaving(true);
     try {
       await setDoc(doc(db, 'settings', 'system'), settings, { merge: true });
-      alert("Đã cập nhật cấu hình hệ thống!");
+      alert("Đã cập nhật cấu hình hệ thống & quy tắc lãi suất!");
     } catch (err) {
       console.error(err);
       alert("Lỗi khi lưu cấu hình");
@@ -3606,7 +3613,12 @@ function SystemAdmin() {
   };
 
   const handleDistributeInterest = async () => {
-    if (!window.confirm('Xác nhận phân phối lãi suất hằng ngày (0.4%) cho tất cả hội viên?')) return;
+    const rateM = settings.interestRateMember !== undefined ? settings.interestRateMember : 0.4;
+    const rateG = settings.interestRateGold !== undefined ? settings.interestRateGold : 0.8;
+    const rateP = settings.interestRatePlatinum !== undefined ? settings.interestRatePlatinum : 1.2;
+    const rateD = settings.interestRateDiamond !== undefined ? settings.interestRateDiamond : 2.0;
+
+    if (!window.confirm(`Xác nhận phân phối lãi suất hằng ngày theo hạng thẻ:\n- Thành viên: ${rateM}%\n- Hạng Vàng: ${rateG}%\n- Hạng Bạch Kim: ${rateP}%\n- Hạng Kim Cương: ${rateD}%\ncho toàn bộ hội viên?`)) return;
 
     setStatus({ type: 'loading', message: 'Đang xử lý phân phối lãi suất...' });
     setResult(null);
@@ -3629,6 +3641,84 @@ function SystemAdmin() {
     } catch (err: any) {
       console.error(err);
       setStatus({ type: 'error', message: 'Lỗi kết nối máy chủ.' });
+    }
+  };
+
+  const handleForceSettleInvestments = async () => {
+    if (!window.confirm('Hệ thống sẽ quét toàn bộ các gói đầu tư và tự động kết toán (hoàn trả cả gốc lẫn lãi) cho các gói đã đến hạn kỳ hạn. Tiếp tục?')) return;
+    setStatus({ type: 'loading', message: 'Đang quét các gói đầu tư đã đáo hạn...' });
+    setResult(null);
+    try {
+      const snapshot = await getDocs(query(
+        collection(db, 'transactions'),
+        where('type', '==', 'investment')
+      ));
+      
+      const activeInvestments = snapshot.docs.filter(doc => doc.data().settled !== true && doc.data().status === 'Thành công');
+      if (activeInvestments.length === 0) {
+        setStatus({ type: 'success', message: 'Không có gói đầu tư nào cần kết toán (Đều đã được tự động hoàn trả khi đáo hạn).' });
+        return;
+      }
+
+      let settledCount = 0;
+      let totalAmountPaid = 0;
+      const now = new Date();
+
+      for (const txDoc of activeInvestments) {
+        const tx = { id: txDoc.id, ...txDoc.data() } as any;
+        const durationStr = tx.duration || "1440 phút";
+        const durationMinutes = parseInt(durationStr.replace(/[^0-9]/g, ''), 10) || 1440;
+        
+        const createdDate = tx.createdAt?.seconds 
+          ? new Date(tx.createdAt.seconds * 1000)
+          : tx.date 
+            ? new Date(tx.date) 
+            : new Date();
+
+        const maturityDate = new Date(createdDate.getTime() + durationMinutes * 60 * 1000);
+
+        if (now >= maturityDate) {
+          const rateStr = tx.interestRate || "1.85 %";
+          const rateVal = parseFloat(rateStr.replace(/[^0-9.]/g, '')) || 1.85;
+          const days = durationMinutes / 1440;
+          const profit = Math.floor(tx.amount * (rateVal / 100) * days);
+          const totalReturn = tx.amount + profit;
+
+          await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, 'users', tx.userId);
+            const userSnap = await transaction.get(userRef);
+            if (!userSnap.exists()) return;
+
+            const currentBalance = userSnap.data().balance || 0;
+            const txRef = doc(db, 'transactions', tx.id);
+            
+            transaction.update(txRef, { settled: true });
+            transaction.update(userRef, { 
+              balance: currentBalance + totalReturn
+            });
+
+            const returnTxRef = doc(collection(db, 'transactions'));
+            transaction.set(returnTxRef, {
+              userId: tx.userId,
+              userName: tx.userName || 'Nhà Đầu Tư',
+              amount: totalReturn,
+              type: 'plus',
+              title: `Kết toán đầu tư: ${tx.title?.replace("Đầu tư: ", "") || "Dự án ủy thác"}`,
+              status: 'Thành công',
+              description: `Hoàn trả gốc và lãi suất ${rateStr} thời hạn ${durationStr} (Đáo hạn tự động)`,
+              createdAt: serverTimestamp()
+            });
+          });
+          settledCount++;
+          totalAmountPaid += totalReturn;
+        }
+      }
+
+      setStatus({ type: 'success', message: `Quét hoàn tất! Đã tự động kết toán thành công ${settledCount} gói đầu tư đã hết hạn.` });
+      setResult({ totalUsers: settledCount, totalPoints: totalAmountPaid });
+    } catch (err: any) {
+      console.error(err);
+      setStatus({ type: 'error', message: 'Có lỗi xảy ra trong quá trình quét kết toán.' });
     }
   };
 
@@ -3685,12 +3775,61 @@ function SystemAdmin() {
                 </div>
               </div>
 
+              {/* TIERS INTEREST RATE CONFIGURATION */}
+              <div className="pt-6 border-t border-neutral-900 space-y-4">
+                <label className="text-[10px] font-black text-neutral-200 uppercase tracking-wider block">
+                  Lãi suất đặc quyền hàng ngày theo hạng thẻ (%)
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Thành viên thường</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="w-full bg-[#18181c] border border-neutral-800 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs text-neutral-200 focus:outline-none placeholder:text-neutral-700 font-bold font-mono"
+                      value={settings.interestRateMember !== undefined ? settings.interestRateMember : 0.4}
+                      onChange={e => setSettings({ ...settings, interestRateMember: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-amber-500/90 font-bold uppercase tracking-wider block mb-1">Hạng Vàng (Gold)</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="w-full bg-[#18181c] border border-neutral-800 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs text-neutral-200 focus:outline-none placeholder:text-neutral-700 font-bold font-mono"
+                      value={settings.interestRateGold !== undefined ? settings.interestRateGold : 0.8}
+                      onChange={e => setSettings({ ...settings, interestRateGold: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-cyan-400/90 font-bold uppercase tracking-wider block mb-1">Hạng Bạch Kim</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="w-full bg-[#18181c] border border-neutral-800 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs text-neutral-200 focus:outline-none placeholder:text-neutral-700 font-bold font-mono"
+                      value={settings.interestRatePlatinum !== undefined ? settings.interestRatePlatinum : 1.2}
+                      onChange={e => setSettings({ ...settings, interestRatePlatinum: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider block mb-1 font-serif">Hạng Kim Cương</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="w-full bg-[#18181c] border border-neutral-800 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs text-neutral-200 focus:outline-none placeholder:text-neutral-700 font-bold font-mono"
+                      value={settings.interestRateDiamond !== undefined ? settings.interestRateDiamond : 2.0}
+                      onChange={e => setSettings({ ...settings, interestRateDiamond: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={isSaving}
                 className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase text-xs tracking-[0.2em] rounded-2xl transition-all active:scale-95 shadow-xl shadow-amber-500/10 disabled:opacity-50"
               >
-                {isSaving ? 'Đang cập nhật...' : 'Cập nhật cấu hình ngay'}
+                {isSaving ? 'Đang cập nhật...' : 'Cập nhật cấu hình & quy tắc'}
               </button>
             </form>
           </div>
@@ -3702,31 +3841,62 @@ function SystemAdmin() {
               
               <h3 className="text-sm font-black uppercase tracking-widest text-[#e1b777] mb-6 flex items-center gap-2">
                 <TrendingUp size={16} />
-                Lãi suất tự động
+                Phát lãi & đáo hạn tự động
               </h3>
 
-              <p className="text-xs text-neutral-400 mb-8 leading-relaxed font-medium">
-                Kích hoạt quy trình tính toán và phân phối lãi suất hằng ngày (<span className="text-[#e1b777] font-bold">0.4%</span>) cho toàn bộ hội viên có số dư trong hệ thống.
-              </p>
+              <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
+                <h4 className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Quy tắc đáo hạn tự động:</h4>
+                <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">
+                  Hệ thống tự động thực hiện trả gốc + lãi suất đầu tư theo đúng kỳ hạn giây/phút đã thiết lập:
+                </p>
+                <div className="text-[10.5px] bg-black/40 p-3 rounded-lg font-mono text-neutral-300 border border-neutral-800 space-y-1">
+                  <p className="text-amber-400 font-bold">Ví dụ minh họa:</p>
+                  <p>• Dự án kỳ hạn: <span className="text-white">1440 phút (24h)</span></p>
+                  <p>• Lãi suất đầu tư: <span className="text-white">1.85%</span></p>
+                  <p>• Thời điểm đáo hạn: Đúng <span className="text-white">1440 phút</span> kể từ thời gian góp vốn.</p>
+                  <p className="text-emerald-400 font-bold mt-1">$\rightarrow$ Tự động cộng: 100% Gốc + 1.85% Lãi</p>
+                </div>
+              </div>
 
-              <button 
-                disabled={status.type === 'loading'}
-                onClick={handleDistributeInterest}
-                className={`w-full px-6 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${
-                  status.type === 'loading'
-                    ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                    : 'bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-[#e1b777] shadow-xl shadow-black/40'
-                }`}
-              >
-                {status.type === 'loading' ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-neutral-500 border-t-transparent rounded-full animate-spin" />
-                    Đang xử lý...
-                  </>
-                ) : (
-                  'Phát lãi suất 0.4% ngay'
-                )}
-              </button>
+              <div className="flex flex-col gap-3">
+                <button 
+                  disabled={status.type === 'loading'}
+                  onClick={handleDistributeInterest}
+                  className={`w-full px-6 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${
+                    status.type === 'loading'
+                      ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                      : 'bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-[#e1b777] shadow-xl shadow-black/40'
+                  }`}
+                >
+                  {status.type === 'loading' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-neutral-500 border-t-transparent rounded-full animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    'Phát lãi ngày hàng loạt'
+                  )}
+                </button>
+
+                <button 
+                  disabled={status.type === 'loading'}
+                  onClick={handleForceSettleInvestments}
+                  className={`w-full px-6 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${
+                    status.type === 'loading'
+                      ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                      : 'bg-amber-500 hover:bg-amber-600 text-black shadow-xl shadow-amber-500/10'
+                  }`}
+                >
+                  {status.type === 'loading' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      Đang quét...
+                    </>
+                  ) : (
+                    'Quét & Kết toán đáo hạn ngay'
+                  )}
+                </button>
+              </div>
 
               {status.type !== 'idle' && (
                 <div className={`mt-6 p-4 rounded-xl border text-[11px] font-bold tracking-wide animate-in fade-in slide-in-from-top-2 ${
@@ -3741,17 +3911,17 @@ function SystemAdmin() {
               {result && (
                 <div className="mt-6 bg-black/40 rounded-xl p-4 border border-white/5 space-y-2">
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                    <span className="text-neutral-500">Hội viên nhận lãi:</span>
+                    <span className="text-neutral-500">Số gói kết toán:</span>
                     <span className="text-white">{result.totalUsers}</span>
                   </div>
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                    <span className="text-neutral-500">Tổng điểm chi trả:</span>
+                    <span className="text-neutral-500">Tổng điểm hoàn trả:</span>
                     <span className="text-amber-500">{result.totalPoints.toLocaleString()} VNĐ</span>
                   </div>
                 </div>
               )}
             </div>
-            
+
             <div className="bg-[#121215] border border-neutral-800 rounded-3xl p-8 shadow-2xl opacity-50 grayscale pointer-events-none">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">

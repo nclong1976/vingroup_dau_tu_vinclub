@@ -426,6 +426,15 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
     const processedUserIds = new Set(processedSnap.docs.map(doc => doc.data().userId));
     console.log(`Already processed today: ${processedUserIds.size} users.`);
 
+    // Fetch dynamic rates from system settings
+    const systemSettingsSnap = await dbAdmin.collection('settings').doc('system').get();
+    const systemSettings = systemSettingsSnap.exists ? systemSettingsSnap.data() : {};
+    
+    const rateMember = systemSettings.interestRateMember !== undefined ? parseFloat(systemSettings.interestRateMember) / 100 : 0.004;
+    const rateGold = systemSettings.interestRateGold !== undefined ? parseFloat(systemSettings.interestRateGold) / 100 : 0.008;
+    const ratePlatinum = systemSettings.interestRatePlatinum !== undefined ? parseFloat(systemSettings.interestRatePlatinum) / 100 : 0.012;
+    const rateDiamond = systemSettings.interestRateDiamond !== undefined ? parseFloat(systemSettings.interestRateDiamond) / 100 : 0.02;
+
     const usersSnap = await dbAdmin.collection('users').get();
     const transactionsRef = dbAdmin.collection('transactions');
     
@@ -446,13 +455,13 @@ app.post('/api/admin/distribute-interest', async (req, res) => {
       
       if (currentPoints > 0) {
         const rank = userData.rank || '';
-        let interestRate = 0.004; // Mặc định MEMBER: 0.4%
+        let interestRate = rateMember; // Mặc định MEMBER
         if (rank.includes('DIAMOND') || rank.includes('KIM CƯƠNG') || rank.includes('KIM CUONG')) {
-          interestRate = 0.02; // DIAMOND: 2%
+          interestRate = rateDiamond; // DIAMOND
         } else if (rank.includes('PLATINUM') || rank.includes('BẠCH KIM') || rank.includes('BACH KIM')) {
-          interestRate = 0.012; // PLATINUM: 1.2%
+          interestRate = ratePlatinum; // PLATINUM
         } else if (rank.includes('GOLD') || rank.includes('VÀNG') || rank.includes('VANG')) {
-          interestRate = 0.008; // GOLD: 0.8%
+          interestRate = rateGold; // GOLD
         }
 
         const interestAmount = Math.floor(currentPoints * interestRate);
