@@ -14,7 +14,7 @@ import {
   HelpCircle, Settings, Wallet, ArrowDown, ArrowUp, DollarSign,
   TrendingDown, Bell, ShieldCheck, History
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 
 // Helper to mask bank account number: only show last 4 digits, hide others with *
 const maskBankAccount = (accountNum: string): string => {
@@ -162,6 +162,7 @@ export default function ProfileTab({
 
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [hoveredChartPoint, setHoveredChartPoint] = useState<any | null>(null);
 
   useEffect(() => {
     const uid = auth.currentUser?.uid || userId;
@@ -1062,12 +1063,14 @@ export default function ProfileTab({
           const profitTxs = allTransactions
             .filter(tx => tx.type === 'plus' && (tx.title?.toLowerCase().includes('kết toán') || tx.title?.toLowerCase().includes('lãi')))
             .sort((a, b) => {
-              const dateA = a.createdAt?.seconds 
-                ? a.createdAt.seconds * 1000 
-                : new Date(a.date || 0).getTime();
-              const dateB = b.createdAt?.seconds 
-                ? b.createdAt.seconds * 1000 
-                : new Date(b.date || 0).getTime();
+              const getMs = (val: any) => {
+                if (!val) return 0;
+                if (val.seconds) return val.seconds * 1000;
+                if (val.toDate) return val.toDate().getTime();
+                return new Date(val).getTime() || 0;
+              };
+              const dateA = getMs(a.date) || getMs(a.createdAt) || 0;
+              const dateB = getMs(b.date) || getMs(b.createdAt) || 0;
               return dateA - dateB;
             });
 
@@ -1081,17 +1084,47 @@ export default function ProfileTab({
                 : '';
             return {
               date: dateLabel,
-              "Lợi nhuận": cumulativeProfit
+              value: cumulativeProfit
             };
           });
 
           // Make sure we have at least 2 points to show a nice curve
           if (chartData.length === 0) {
-            chartData.push({ date: 'Khởi điểm', "Lợi nhuận": 0 });
-            chartData.push({ date: 'Hiện tại', "Lợi nhuận": 0 });
+            chartData.push({ date: 'Khởi điểm', value: 0 });
+            chartData.push({ date: 'Hiện tại', value: 0 });
           } else if (chartData.length === 1) {
-            chartData.unshift({ date: 'Khởi điểm', "Lợi nhuận": 0 });
+            chartData.unshift({ date: 'Khởi điểm', value: 0 });
           }
+
+          // SVG geometry calculations
+          const svgW = 500;
+          const svgH = 200;
+          const padL = 60;
+          const padR = 25;
+          const padT = 20;
+          const padB = 30;
+          
+          const chartW = svgW - padL - padR;
+          const chartH = svgH - padT - padB;
+          
+          const maxVal = Math.max(...chartData.map(d => d.value), 1000);
+          
+          const points = chartData.map((d, i) => {
+            const x = padL + (i / (chartData.length - 1)) * chartW;
+            const y = padT + (1 - (d.value / maxVal)) * chartH;
+            return { x, y, date: d.date, value: d.value };
+          });
+          
+          const linePath = points.length > 0 
+            ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+            : '';
+            
+          const fillPath = points.length > 0
+            ? `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(svgH - padB).toFixed(1)} L ${points[0].x.toFixed(1)} ${(svgH - padB).toFixed(1)} Z`
+            : '';
+
+          // 4 Grid Lines (0%, 33%, 66%, 100% height)
+          const gridRatios = [0, 0.33, 0.66, 1];
 
           return (
             <div className="w-full space-y-3">
@@ -1102,59 +1135,147 @@ export default function ProfileTab({
                   Tổng Lãi: {cumulativeProfit.toLocaleString()} VNĐ
                 </span>
               </div>
-              <div className="bg-white rounded-3xl p-5 border border-neutral-100 shadow-sm">
+              <div className="bg-white rounded-3xl p-5 border border-neutral-100 shadow-sm relative">
                 <div className="mb-4">
                   <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Tăng trưởng lợi nhuận (VND)</span>
                   <div className="text-xl font-black text-neutral-800 font-mono mt-0.5">+{cumulativeProfit.toLocaleString()} VNĐ</div>
                 </div>
                 
-                <div className="w-full h-[180px] text-xs">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#d97706" stopOpacity={0.25}/>
-                          <stop offset="95%" stopColor="#d97706" stopOpacity={0.01}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis 
-                        dataKey="date" 
-                        tickLine={false} 
-                        axisLine={false} 
-                        stroke="#9ca3af" 
-                        style={{ fontSize: '9px', fontWeight: 'bold' }} 
-                      />
-                      <YAxis 
-                        tickLine={false} 
-                        axisLine={false} 
-                        stroke="#9ca3af" 
-                        style={{ fontSize: '9px', fontWeight: 'bold' }}
-                        tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#171717', 
-                          borderRadius: '16px', 
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: '#fff',
-                          fontSize: '11px',
-                          fontWeight: 'bold'
-                        }}
-                        labelStyle={{ color: '#9ca3af', marginBottom: '4px' }}
-                        itemStyle={{ color: '#fbbf24' }}
-                        formatter={(value: any) => [`${value.toLocaleString()} VNĐ`, "Lợi nhuận"]}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="Lợi nhuận" 
+                {/* Safe Native responsive SVG wrapper */}
+                <div className="relative w-full h-[180px] text-xs select-none">
+                  <svg 
+                    viewBox={`0 0 ${svgW} ${svgH}`} 
+                    className="w-full h-full"
+                  >
+                    <defs>
+                      <linearGradient id="svgProfitGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#d97706" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#d97706" stopOpacity={0.01}/>
+                      </linearGradient>
+                    </defs>
+
+                    {/* Grid lines & Y Axis values */}
+                    {gridRatios.map((ratio, idx) => {
+                      const y = padT + ratio * chartH;
+                      const gridVal = maxVal * (1 - ratio);
+                      const displayVal = gridVal >= 1000000 
+                        ? `${(gridVal / 1000000).toFixed(1)}M` 
+                        : gridVal >= 1000 
+                          ? `${(gridVal / 1000).toFixed(0)}k` 
+                          : gridVal.toString();
+
+                      return (
+                        <g key={idx}>
+                          <line 
+                            x1={padL} 
+                            y1={y} 
+                            x2={svgW - padR} 
+                            y2={y} 
+                            stroke="#f3f4f6" 
+                            strokeWidth={1} 
+                            strokeDasharray="3 3"
+                          />
+                          <text 
+                            x={padL - 10} 
+                            y={y} 
+                            textAnchor="end" 
+                            alignmentBaseline="middle" 
+                            fill="#9ca3af"
+                            className="text-[10px] font-bold font-mono"
+                          >
+                            {displayVal}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Gradient Fill */}
+                    {fillPath && (
+                      <path d={fillPath} fill="url(#svgProfitGradient)" />
+                    )}
+
+                    {/* Stroke line */}
+                    {linePath && (
+                      <path 
+                        d={linePath} 
                         stroke="#d97706" 
-                        strokeWidth={2.5}
-                        fillOpacity={1} 
-                        fill="url(#colorProfit)" 
+                        strokeWidth={2.5} 
+                        fill="none" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
                       />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                    )}
+
+                    {/* X Axis dates */}
+                    {points.filter((_, i) => {
+                      if (points.length <= 5) return true;
+                      return i === 0 || i === points.length - 1 || i === Math.floor(points.length / 2);
+                    }).map((p, idx) => (
+                      <text 
+                        key={idx} 
+                        x={p.x} 
+                        y={svgH - 8} 
+                        textAnchor="middle" 
+                        fill="#9ca3af"
+                        className="text-[10px] font-bold"
+                      >
+                        {p.date}
+                      </text>
+                    ))}
+
+                    {/* Hover vertical reference line & circle */}
+                    {hoveredChartPoint && (
+                      <g>
+                        <line 
+                          x1={hoveredChartPoint.x} 
+                          y1={padT} 
+                          x2={hoveredChartPoint.x} 
+                          y2={svgH - padB} 
+                          stroke="#d97706" 
+                          strokeWidth={1} 
+                          strokeDasharray="2 2"
+                        />
+                        <circle 
+                          cx={hoveredChartPoint.x} 
+                          cy={hoveredChartPoint.y} 
+                          r={5} 
+                          fill="#d97706" 
+                          stroke="#ffffff" 
+                          strokeWidth={2}
+                        />
+                      </g>
+                    )}
+
+                    {/* Interactive overlay points for mouse/touch trigger */}
+                    {points.map((p, idx) => (
+                      <circle 
+                        key={idx} 
+                        cx={p.x} 
+                        cy={p.y} 
+                        r={12} 
+                        fill="transparent" 
+                        className="cursor-pointer" 
+                        onMouseEnter={() => setHoveredChartPoint(p)}
+                        onMouseLeave={() => setHoveredChartPoint(null)}
+                        onTouchStart={() => setHoveredChartPoint(p)}
+                      />
+                    ))}
+                  </svg>
+
+                  {/* Absolute HTML Custom Tooltip */}
+                  {hoveredChartPoint && (
+                    <div 
+                      className="absolute bg-neutral-900 border border-white/10 rounded-xl p-2.5 shadow-xl text-[10px] text-white z-20 pointer-events-none font-bold min-w-[120px]"
+                      style={{ 
+                        left: `${((hoveredChartPoint.x / svgW) * 100).toFixed(1)}%`, 
+                        top: `${((hoveredChartPoint.y / svgH) * 100 - 32).toFixed(1)}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      <span className="text-gray-400 block mb-0.5">{hoveredChartPoint.date}</span>
+                      <span className="text-[#fbbf24] font-mono">+{hoveredChartPoint.value.toLocaleString()} VNĐ</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
