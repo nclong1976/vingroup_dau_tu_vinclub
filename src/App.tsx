@@ -556,7 +556,7 @@ export default function App() {
   const [showBalance, setShowBalance] = useState<boolean>(false);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showDepositModal, setShowDepositModal] = useState<boolean>(false);
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'plus' | 'minus'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'invest' | 'interest' | 'withdraw'>('all');
   const [initialSupportMessage, setInitialSupportMessage] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -1329,23 +1329,24 @@ export default function App() {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-stone-100 uppercase tracking-wider">Lịch sử giao dịch</h3>
-                        <p className="text-[10px] text-gray-400">Các hoạt động tích điểm & tiêu điểm VinPoints</p>
+                        <p className="text-[10px] text-gray-400">Biến động số dư tài sản & góp vốn đầu tư</p>
                       </div>
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 border border-white/10 rounded-xl mb-4.5 z-10 select-none">
+                    <div className="grid grid-cols-4 gap-1 bg-neutral-950 p-1 border border-white/10 rounded-xl mb-4.5 z-10 select-none">
                       {[
                         { id: 'all', label: 'Tất cả' },
-                        { id: 'plus', label: 'Tích điểm' },
-                        { id: 'minus', label: 'Tiêu điểm' }
+                        { id: 'invest', label: 'Góp vốn' },
+                        { id: 'interest', label: 'Lãi suất' },
+                        { id: 'withdraw', label: 'Rút tiền' }
                       ].map((tab) => (
                         <button
                           key={tab.id}
                           onClick={() => setHistoryFilter(tab.id as any)}
-                          className={`py-1.5 text-[9px] font-bold uppercase rounded-lg transition-colors cursor-pointer text-center ${
+                          className={`py-1.5 text-[8.5px] font-black uppercase rounded-lg transition-colors cursor-pointer text-center ${
                             historyFilter === tab.id 
-                              ? 'bg-amber-500 text-neutral-950' 
+                              ? 'bg-amber-500 text-neutral-950 shadow-sm' 
                               : 'text-gray-400 hover:text-white'
                           }`}
                         >
@@ -1358,17 +1359,58 @@ export default function App() {
                     <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-10 max-h-[380px]">
                       {realTransactions
                         .filter(tx => {
-                          const t = (tx.type === 'deposit' || tx.type === 'plus') ? 'plus' : 'minus';
-                          return historyFilter === 'all' || t === historyFilter;
+                          if (historyFilter === 'all') return true;
+                          const titleLower = (tx.title || tx.description || '').toLowerCase();
+                          const isInvestment = tx.type === 'investment' || titleLower.includes('đầu tư') || tx.type === 'deposit' || titleLower.includes('nạp tiền');
+                          const isInterest = tx.type === 'interest' || titleLower.includes('kết toán') || titleLower.includes('lãi');
+                          const isWithdraw = tx.type === 'minus' || tx.type === 'withdraw' || titleLower.includes('rút tiền');
+                          
+                          if (historyFilter === 'invest') return isInvestment;
+                          if (historyFilter === 'interest') return isInterest;
+                          if (historyFilter === 'withdraw') return isWithdraw;
+                          return true;
                         })
                         .map((tx) => {
-                          const isPlus = tx.type === 'deposit' || tx.type === 'plus';
                           const displayPoints = tx.amount || tx.points || 0;
+                          const titleLower = (tx.title || tx.description || '').toLowerCase();
+                          
+                          let txCategory: 'deposit' | 'investment' | 'interest' | 'withdraw' = 'deposit';
+                          if (tx.type === 'investment' || titleLower.includes('đầu tư')) {
+                            txCategory = 'investment';
+                          } else if (tx.type === 'interest' || titleLower.includes('kết toán') || titleLower.includes('lãi')) {
+                            txCategory = 'interest';
+                          } else if (tx.type === 'minus' || tx.type === 'withdraw' || titleLower.includes('rút tiền')) {
+                            txCategory = 'withdraw';
+                          }
+
+                          let iconElement = <ArrowDownLeft className="w-4 h-4 shrink-0" />;
+                          let iconBg = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                          let isPlus = true;
+                          let sign = '+';
+
+                          if (txCategory === 'investment') {
+                            iconElement = <TrendingUp className="w-4 h-4 shrink-0" />;
+                            iconBg = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                            isPlus = false;
+                            sign = '-';
+                          } else if (txCategory === 'interest') {
+                            iconElement = <Sparkles className="w-4 h-4 shrink-0" />;
+                            iconBg = 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+                            isPlus = true;
+                            sign = '+';
+                          } else if (txCategory === 'withdraw') {
+                            iconElement = <ArrowUpRight className="w-4 h-4 shrink-0" />;
+                            iconBg = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                            isPlus = false;
+                            sign = '-';
+                          }
+
                           const dateStr = tx.date 
                             ? (tx.date.includes('-') ? new Date(tx.date).toLocaleDateString('vi-VN') : tx.date)
                             : tx.createdAt?.seconds 
                               ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString('vi-VN')
                               : 'N/A';
+                          
                           const displayStatus = tx.status === 'completed' || tx.status === 'success' || tx.status === 'Thành công'
                             ? 'Thành công'
                             : tx.status === 'pending' || tx.status === 'Đang chờ' || tx.status === 'Đang xử lý' || tx.status === 'Đang chờ duyệt'
@@ -1387,8 +1429,8 @@ export default function App() {
                               className={`bg-neutral-950/70 border border-white/5 rounded-2xl p-3 flex justify-between items-center transition-all ${tx.type === 'investment' ? 'cursor-pointer hover:border-amber-500/35 hover:bg-neutral-900 active:scale-[0.98]' : ''}`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`p-2 rounded-xl shrink-0 ${isPlus ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                  {isPlus ? <ArrowDownLeft className="w-4 h-4 shrink-0" /> : <ArrowUpRight className="w-4 h-4 shrink-0" />}
+                                <div className={`p-2 rounded-xl shrink-0 ${iconBg}`}>
+                                  {iconElement}
                                 </div>
                                 <div className="min-w-0">
                                   <h4 className="text-[10px] font-bold text-stone-200 truncate pr-1">{tx.title || tx.description || "Giao dịch"}</h4>
@@ -1401,7 +1443,7 @@ export default function App() {
                               </div>
                               <div className="text-right shrink-0 ml-2">
                                 <span className={`text-[11px] font-black font-mono tracking-wide block ${isPlus ? 'text-emerald-400' : 'text-amber-500'}`}>
-                                  {isPlus ? '+' : '-'}{displayPoints.toLocaleString()} VND
+                                  {sign}{displayPoints.toLocaleString()} VND
                                 </span>
                                 <span className={`text-[7.5px] px-1.5 py-0.5 rounded font-extrabold tracking-wide uppercase font-mono mt-0.5 inline-block ${
                                   displayStatus === 'Thành công'
