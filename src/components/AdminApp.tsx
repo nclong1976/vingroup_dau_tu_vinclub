@@ -40,7 +40,8 @@ import {
   MessageSquare,
   Bell,
   Star,
-  Menu
+  Menu,
+  Wallet
 } from 'lucide-react';
 
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
@@ -1100,6 +1101,8 @@ function RegistrationAdmin() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [editingBalanceUser, setEditingBalanceUser] = useState<any | null>(null);
   const [balanceInput, setBalanceInput] = useState<string>('');
+  const [adjustAction, setAdjustAction] = useState<'plus' | 'minus'>('plus');
+  const [adjustNote, setAdjustNote] = useState<string>('');
 
   // Add user Form State
   const [addFullName, setAddFullName] = useState('');
@@ -1156,8 +1159,24 @@ function RegistrationAdmin() {
     setEditingUser(null);
   };
 
-  const handleUpdateBalance = async (id: string, newPoints: number) => {
+  const handleUpdateBalance = async (id: string) => {
     try {
+      const adjustAmount = Number(balanceInput);
+      if (!balanceInput || adjustAmount <= 0) {
+        alert("Vui lòng nhập số tiền hợp lệ!");
+        return;
+      }
+      
+      const currentPoints = Number(editingBalanceUser.points) || 0;
+      const newPoints = adjustAction === 'plus' 
+        ? currentPoints + adjustAmount 
+        : currentPoints - adjustAmount;
+        
+      if (newPoints < 0) {
+        alert("Số dư tài khoản sau khi trừ không được nhỏ hơn 0!");
+        return;
+      }
+
       let newTier = 'THÀNH VIÊN / MEMBER';
       if (newPoints >= 10000000000) {
         newTier = 'KIM CƯƠNG / DIAMOND';
@@ -1167,6 +1186,7 @@ function RegistrationAdmin() {
         newTier = 'VÀNG / GOLD';
       }
 
+      // Update user doc in Firestore
       await updateDoc(doc(db, 'users', id), { 
         points: newPoints,
         balance: newPoints,
@@ -1174,9 +1194,25 @@ function RegistrationAdmin() {
         rank: newTier,
         updatedAt: new Date().toISOString()
       });
-      console.log("Cập nhật số dư thành công!");
+
+      // Write to transactions collection for tracking
+      await addDoc(collection(db, 'transactions'), {
+        userId: id,
+        userName: editingBalanceUser.fullName || 'Hội viên',
+        amount: adjustAmount,
+        type: adjustAction === 'plus' ? 'plus' : 'minus',
+        paymentMethod: 'system',
+        title: adjustAction === 'plus' ? 'Hệ thống cộng tiền' : 'Hệ thống trừ tiền',
+        description: adjustNote.trim() || (adjustAction === 'plus' ? 'Cộng số dư ví hệ thống' : 'Khấu trừ số dư ví hệ thống'),
+        status: 'Thành công',
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+
+      console.log("Cập nhật số dư và lưu giao dịch thành công!");
       setEditingBalanceUser(null);
       setBalanceInput('');
+      setAdjustNote('');
     } catch (err) {
       console.error("Lỗi cập nhật số dư:", err);
       alert("Không thể cập nhật số dư. Vui lòng thử lại.");
@@ -1984,58 +2020,131 @@ function RegistrationAdmin() {
 
       {/* MODAL 3: ADJUST USER BALANCE */}
       {editingBalanceUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
-          <div className="luxury-card max-w-sm w-full rounded-2xl p-6 border border-[#e1b777]/20 shadow-2xl relative">
-            <button 
-              onClick={() => setEditingBalanceUser(null)}
-              className="absolute right-4 top-4 text-neutral-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl relative border border-gray-100 flex flex-col text-neutral-800 animate-scale-up">
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-gray-700" />
+                <h3 className="text-base font-bold text-gray-900">Điều chỉnh ví</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setEditingBalanceUser(null);
+                  setBalanceInput('');
+                  setAdjustNote('');
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <h3 className="text-lg font-serif font-bold text-white mb-1">Chỉnh Sửa Số Dư Tích Lũy</h3>
-            <p className="text-xs text-neutral-400 mb-5 font-mono">Hội viên: {editingBalanceUser.fullName}</p>
-            
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-semibold text-neutral-400 tracking-wider font-mono">Nhập số tiền (VND):</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="number" 
-                    placeholder="Nhập số tiền..."
-                    value={balanceInput}
-                    onChange={(e) => setBalanceInput(e.target.value)}
-                    className="flex-1 bg-[#16161c] border border-[#e1b777]/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#e1b777] font-mono font-bold"
-                  />
+            {/* User Info Box */}
+            <div className="bg-neutral-50 rounded-2xl p-4 flex items-center justify-between mt-4 border border-gray-100/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#7c6a46] text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                  {(() => {
+                    const name = editingBalanceUser.fullName || "?";
+                    const parts = name.trim().split(" ");
+                    return parts[parts.length - 1].charAt(0).toUpperCase();
+                  })()}
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800 text-sm leading-snug">{editingBalanceUser.fullName}</h4>
+                  <p className="text-[11px] font-medium text-gray-400 mt-0.5">{editingBalanceUser.email || 'không có email'}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => handleUpdateBalance(editingBalanceUser.id, (Number(editingBalanceUser.points) || 0) + Number(balanceInput))}
-                  className="px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Cộng
-                </button>
-                <button 
-                  onClick={() => handleUpdateBalance(editingBalanceUser.id, (Number(editingBalanceUser.points) || 0) - Number(balanceInput))}
-                  className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                  Trừ
-                </button>
-              </div>
-
-              <div className="pt-2 border-t border-[#e1b777]/10">
-                 <button 
-                  onClick={() => handleUpdateBalance(editingBalanceUser.id, Number(balanceInput))}
-                  className="w-full px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
-                >
-                  Ghi đè trực tiếp: {Number(balanceInput).toLocaleString()} VND
-                </button>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Số dư</p>
+                <p className="font-black text-gray-800 text-base font-mono mt-0.5">
+                  {(Number(editingBalanceUser.points) || 0).toLocaleString('vi-VN')}
+                </p>
               </div>
             </div>
+
+            {/* Adjust Mode Tabs */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setAdjustAction('plus')}
+                className={`py-3 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+                  adjustAction === 'plus'
+                    ? 'border-emerald-500 text-emerald-600 bg-emerald-50/20 font-black'
+                    : 'border-gray-200 text-gray-400 bg-transparent hover:border-gray-300'
+                }`}
+              >
+                <Plus className="w-4 h-4" /> Cộng tiền
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustAction('minus')}
+                className={`py-3 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+                  adjustAction === 'minus'
+                    ? 'border-rose-500 text-rose-600 bg-rose-50/20 font-black'
+                    : 'border-gray-200 text-gray-400 bg-transparent hover:border-gray-300'
+                }`}
+              >
+                <Minus className="w-4 h-4" /> Trừ tiền
+              </button>
+            </div>
+
+            {/* Input Amount */}
+            <div className="mt-5 space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Số tiền</label>
+              <div className="relative">
+                <input 
+                  type="number" 
+                  value={balanceInput}
+                  onChange={(e) => setBalanceInput(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-white border border-gray-300 focus:border-[#7c6a46] rounded-xl px-4 py-3.5 pr-14 text-lg text-gray-800 font-mono font-bold focus:outline-none transition-colors"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-xs text-gray-400 tracking-wider">VNĐ</div>
+              </div>
+            </div>
+
+            {/* Quick select amount grid */}
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[100000, 500000, 1000000, 5000000, 10000000, 50000000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setBalanceInput(val.toString())}
+                  className="py-2.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-100 rounded-lg text-[10px] sm:text-xs font-bold text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  {val.toLocaleString('vi-VN')}
+                </button>
+              ))}
+            </div>
+
+            {/* Note field */}
+            <div className="mt-5 space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Ghi chú (tùy chọn)</label>
+              <input
+                type="text"
+                placeholder="Lý do điều chỉnh..."
+                value={adjustNote}
+                onChange={(e) => setAdjustNote(e.target.value)}
+                className="w-full bg-white border border-gray-200 focus:border-[#7c6a46] rounded-xl px-4 py-3 text-xs text-gray-700 placeholder-gray-300 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Submit Action Button */}
+            <button
+              onClick={() => handleUpdateBalance(editingBalanceUser.id)}
+              className={`w-full mt-6 py-3.5 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-98 ${
+                adjustAction === 'plus'
+                  ? 'bg-[#82e3b4] hover:bg-[#6edbb0] text-emerald-900'
+                  : 'bg-rose-500 hover:bg-rose-600 text-white'
+              }`}
+            >
+              {adjustAction === 'plus' ? (
+                <><Plus className="w-4 h-4 stroke-[3]" /> Cộng VNĐ</>
+              ) : (
+                <><Minus className="w-4 h-4 stroke-[3]" /> Trừ VNĐ</>
+              )}
+            </button>
           </div>
         </div>
       )}
