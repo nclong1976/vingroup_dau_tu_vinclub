@@ -1,10 +1,10 @@
-const firebaseConfig = {
-  apiKey: "",
-  authDomain: "vinclub-e1bb4.firebaseapp.com",
-  databaseURL: "https://vinclub-e1bb4-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "vinclub-e1bb4",
-  storageBucket: "vinclub-e1bb4.firebasestorage.app",
-  messagingSenderId: "341248024780",
-  appId: "1:341248024780:web:0963269087353ea6766269",
-  measurementId: "G-JXF0GY8LH8"
-};
+{
+  "apiKey": "YOUR_FIREBASE_API_KEY_HERE",
+  "authDomain": "vinclub-e1bb4.firebaseapp.com",
+  "databaseURL": "https://vinclub-e1bb4-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "vinclub-e1bb4",
+  "storageBucket": "vinclub-e1bb4.firebasestorage.app",
+  "messagingSenderId": "341248024780",
+  "appId": "1:341248024780:web:0963269087353ea6766269",
+  "measurementId": "G-JXF0GY8LH8"
+}
