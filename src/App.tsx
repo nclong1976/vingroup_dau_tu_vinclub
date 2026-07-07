@@ -186,7 +186,9 @@ export default function App() {
     }
   }, [isLoadingGlobe, activeTab]);
 
-  const [appView, setAppView] = useState<'main' | 'all-news' | 'all-projects'>('main');
+  const [appView, setAppView] = useState<'main' | 'all-news' | 'all-projects'>(() => {
+    return (sessionStorage.getItem('vinclub_app_view') as any) || 'main';
+  });
   const [selectedNews, setSelectedNews] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [lockVerticalMotion, setLockVerticalMotion] = useState<boolean>(true);
@@ -576,6 +578,69 @@ export default function App() {
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(() => parseInt(localStorage.getItem('lastSeenNotifs') || '0', 10));
   const notificationContainerRef = useRef<HTMLDivElement>(null);
   const [notificationsList, setNotificationsList] = useState<any[]>([]);
+
+  // Synchronize appView to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('vinclub_app_view', appView);
+  }, [appView]);
+
+  // Synchronize selectedNews to sessionStorage
+  useEffect(() => {
+    if (selectedNews) {
+      sessionStorage.setItem('vinclub_selected_news_id', selectedNews.id || '');
+    } else {
+      sessionStorage.removeItem('vinclub_selected_news_id');
+    }
+  }, [selectedNews]);
+
+  // Synchronize selectedCard to sessionStorage
+  useEffect(() => {
+    if (selectedCard) {
+      sessionStorage.setItem('vinclub_selected_card_id', selectedCard.project?.id || selectedCard.location || '');
+    } else {
+      sessionStorage.removeItem('vinclub_selected_card_id');
+    }
+  }, [selectedCard]);
+
+  // Restore selectedNews when newsList is loaded
+  useEffect(() => {
+    const savedNewsId = sessionStorage.getItem('vinclub_selected_news_id');
+    if (savedNewsId && newsList.length > 0) {
+      const matched = newsList.find(n => n.id === savedNewsId);
+      if (matched) {
+        setSelectedNews(matched);
+      }
+    }
+  }, [newsList]);
+
+  // Restore selectedCard when projects is loaded
+  useEffect(() => {
+    const savedCardId = sessionStorage.getItem('vinclub_selected_card_id');
+    if (savedCardId && projects.length > 0) {
+      const matched = projects.find(p => p.id === savedCardId || p.location === savedCardId);
+      if (matched) {
+        setSelectedCard({
+          image: matched.image || matched.img || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80",
+          location: matched.location || "Dự án Đặc quyền VinClub",
+          info: matched.description || matched.info || "Mô tả chi tiết dự án đầu tư.",
+          project: matched
+        });
+      }
+    }
+  }, [projects]);
+
+  // Mark notifications as read when the notification dropdown is open
+  useEffect(() => {
+    if (showNotifications && notificationsList.length > 0) {
+      const latestTime = Math.max(...notificationsList.map(n => n.timestamp || 0), 0);
+      const currentStored = parseInt(localStorage.getItem('lastSeenNotifs') || '0', 10);
+      if (latestTime > currentStored) {
+        localStorage.setItem('lastSeenNotifs', String(latestTime));
+        setLastSeenTimestamp(latestTime);
+      }
+      setUnreadCount(0);
+    }
+  }, [showNotifications, notificationsList]);
 
   useEffect(() => {
     // Load local user settings on mount
@@ -990,7 +1055,6 @@ export default function App() {
                 <button
                   onClick={() => {
                     setShowNotifications(!showNotifications);
-                    setUnreadCount(0); // clear count upon opening
                   }}
                   className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all relative cursor-pointer shadow-lg"
                 >
