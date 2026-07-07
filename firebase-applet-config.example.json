@@ -1,0 +1,10 @@
+{
+  "apiKey": "YOUR_FIREBASE_API_KEY_HERE",
+  "authDomain": "vinclub-e1bb4.firebaseapp.com",
+  "databaseURL": "https://vinclub-e1bb4-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "vinclub-e1bb4",
+  "storageBucket": "vinclub-e1bb4.firebasestorage.app",
+  "messagingSenderId": "your-messaging-sender-id",
+  "appId": "1:your-app-id:web:your-web-id",
+  "measurementId": "G-YOUR-MEASUREMENT-ID"
+}
