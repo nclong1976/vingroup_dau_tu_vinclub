@@ -121,7 +121,7 @@ function compositePortfolioCard(
       ctx.textBaseline = 'middle';
       ctx.fillText("VINCLUB", 335, 470);
       ctx.font = 'bold 7px sans-serif';
-      ctx.fillText("INVEST", 335, 480);
+      ctx.fillText("HỘI VIÊN", 335, 480);
       ctx.restore();
 
       try {

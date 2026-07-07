@@ -1077,7 +1077,7 @@ export default function App() {
                     >
                       <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
                         <span className="text-xs font-black text-[#dcc2a6] tracking-wider uppercase">THÔNG BÁO VIP</span>
-                        <span className="text-[9px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">NEW</span>
+                        <span className="text-[9px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">MỚI</span>
                       </div>
 
                       <div className="divide-y divide-white/5 max-h-[300px] overflow-y-auto">
