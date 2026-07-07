@@ -1,11 +1,13 @@
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCSJX1n2K3SFPUiKX9j83XUq9-0oj5fl7E",
-  authDomain: "vinclub-e1bb4.firebaseapp.com",
-  databaseURL: "https://vinclub-e1bb4-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "vinclub-e1bb4",
-  storageBucket: "vinclub-e1bb4.firebasestorage.app",
-  messagingSenderId: "341248024780",
-  appId: "1:341248024780:web:0963269087353ea6766269",
-  measurementId: "G-JXF0GY8LH8"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+export default firebaseConfig;
