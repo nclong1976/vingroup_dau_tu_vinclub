@@ -55,6 +55,23 @@ export default function DepositModal({ isOpen, onClose, userName, userId, onComp
 
       await addDoc(collection(db, 'transactions'), newTransaction);
 
+      try {
+        fetch('/api/telegram/notify-deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId || "anonymous",
+            userName: userName || "Nhà Đầu Tư",
+            amount: amountVal,
+            method: method,
+          }),
+        });
+      } catch (tgErr) {
+        console.error("Error sending deposit notification to Telegram:", tgErr);
+      }
+
       setSuccess(true);
       setTimeout(() => {
         if (onComplete) onComplete(amountVal);

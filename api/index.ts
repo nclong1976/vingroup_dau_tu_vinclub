@@ -848,6 +848,46 @@ app.post("/api/telegram/notify-withdraw", async (req, res) => {
   }
 });
 
+// Endpoint to send deposit notification to Telegram Bot
+app.post("/api/telegram/notify-deposit", async (req, res) => {
+  try {
+    const { userId, userName, amount, method } = req.body;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      console.warn("Telegram Bot Token or Chat ID is not configured.");
+      return res.status(500).json({ error: "Telegram is not configured on the server." });
+    }
+
+    const messageText = `💵 <b>YÊU CẦU NẠP TIỀN / GÓP VỐN</b> 💵\n\n👤 <b>Khách hàng:</b> ${userName || "Nhà Đầu Tư"}\n🆔 <b>ID:</b> <code>${userId}</code>\n💰 <b>Số tiền nạp:</b> <code>${Number(amount).toLocaleString()} VND</code>\n💳 <b>Phương thức:</b> ${method?.toUpperCase() || "NGÂN HÀNG"}\n📅 <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}\n\n<i>*Vui lòng kiểm tra và duyệt trên trang quản trị Admin.</i>`;
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: messageText,
+        parse_mode: "HTML",
+      }),
+    });
+
+    if (response.ok) {
+      return res.json({ success: true });
+    } else {
+      const errText = await response.text();
+      console.error("Failed to send deposit notification to Telegram:", errText);
+      return res.status(500).json({ error: errText });
+    }
+  } catch (error: any) {
+    console.error("Error in /api/telegram/notify-deposit:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 // Vite middleware for development and static assets for production (only when running locally)
 async function bootstrap() {

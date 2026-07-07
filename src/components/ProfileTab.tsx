@@ -543,7 +543,24 @@ export default function ProfileTab({
       };
       
       await addDoc(collection(db, 'transactions'), newTransaction);
-      
+
+      try {
+        fetch('/api/telegram/notify-deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: uid,
+            userName: userName || "Nhà Đầu Tư",
+            amount: amountVal,
+            method: depositMethod,
+          }),
+        });
+      } catch (tgErr) {
+        console.error("Error sending deposit notification to Telegram:", tgErr);
+      }
+
       const amountStr = amountVal.toLocaleString();
       const depositMsg = `Tôi muốn góp vốn đầu tư ${amountStr} VND\nTôi xin cam đoan số tiền trên là hợp pháp.`;
       
