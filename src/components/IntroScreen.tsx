@@ -19,6 +19,16 @@ interface IntroScreenProps {
 
 type OnboardingStep = 'login' | 'otp' | 'register' | 'terms' | 'upload';
 
+// Helper: bọc Promise với timeout để tránh Firestore treo vô hạn
+function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), ms)
+    ),
+  ]);
+}
+
 export default function IntroScreen({ onStart }: IntroScreenProps) {
   const [step, setStep] = useState<OnboardingStep>('login');
   const [isLoading, setIsLoading] = useState(false);
@@ -112,46 +122,53 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     setIsLoading(true);
     setLoginError(null);
     try {
-      // Sign in anonymously first to get Firebase auth credentials
+      // Lấy Firebase Auth UID
       let uid: string;
       try {
         const userCredential = await signInAnonymously(auth);
         uid = userCredential.user.uid;
       } catch (authErr) {
-        console.warn("Firebase Auth failure, generating local session ID:", authErr);
+        console.warn('Firebase Auth failure, generating local session ID:', authErr);
         uid = 'local-user-' + Math.floor(100000 + Math.random() * 900000);
       }
 
-      // Check if user already exists in Firestore by querying their contact
-      const contactQuery = query(collection(db, 'users'), where('contact', '==', loginContact.trim()));
-      const contactSnap = await getDocs(contactQuery);
-      
-      if (!contactSnap.empty) {
-        const existingUser = contactSnap.docs[0].data();
-        onStart(existingUser.photoUrl || '/new-test.png', existingUser.fullName, existingUser.userId);
-      } else {
-        // Check localStorage matching contact
-        const localUserStr = localStorage.getItem('vinclub_local_user');
-        if (localUserStr) {
-          try {
-            const localUser = JSON.parse(localUserStr);
-            if (localUser.contact === loginContact.trim()) {
-              onStart(localUser.photoUrl || '/new-test.png', localUser.fullName, localUser.userId);
-              setIsLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.error("Local user load error:", e);
-          }
+      // Tra cứu user trong Firestore với timeout
+      let firestoreUser: any = null;
+      try {
+        const contactQuery = query(collection(db, 'users'), where('contact', '==', loginContact.trim()));
+        const contactSnap = await withTimeout(getDocs(contactQuery));
+        if (!contactSnap.empty) {
+          firestoreUser = contactSnap.docs[0].data();
         }
-        
-        // Strictly refuse entry for unregistered accounts
-        setLoginError('Tài khoản chưa được đăng ký trong hệ thống VinClub. Vui lòng bấm Đăng ký.');
-        setStep('login');
+      } catch (firestoreErr: any) {
+        console.warn('Firestore lookup failed, trying localStorage:', firestoreErr.message);
       }
+
+      if (firestoreUser) {
+        onStart(firestoreUser.photoUrl || '/new-test.png', firestoreUser.fullName, firestoreUser.userId);
+        return;
+      }
+
+      // Fallback: tìm trong localStorage
+      const localUserStr = localStorage.getItem('vinclub_local_user');
+      if (localUserStr) {
+        try {
+          const localUser = JSON.parse(localUserStr);
+          if (localUser.contact === loginContact.trim()) {
+            onStart(localUser.photoUrl || '/new-test.png', localUser.fullName, localUser.userId);
+            return;
+          }
+        } catch (e) {
+          console.error('Local user load error:', e);
+        }
+      }
+
+      // Không tìm thấy tài khoản
+      setLoginError('Tài khoản chưa được đăng ký trong hệ thống VinClub. Vui lòng bấm Đăng ký.');
+      setStep('login');
     } catch (err: any) {
-      console.error("OTP verification error:", err);
-      setLoginError("Xác thực mã OTP thất bại. Vui lòng thử lại.");
+      console.error('OTP verification error:', err);
+      setLoginError('Xác thực mã OTP thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -210,45 +227,45 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     setIsLoading(true);
     try {
       const contactVal = loginContact.trim();
-      
-      // Checking Firestore for registered users
-      const contactQuery = query(collection(db, 'users'), where('contact', '==', contactVal));
-      const contactSnap = await getDocs(contactQuery);
-      
-      let exists = !contactSnap.empty;
-      
-      if (!exists) {
-        const contactRef = doc(db, 'unique_contacts', contactVal);
-        const contactDoc = await getDoc(contactRef);
-        if (contactDoc.exists()) {
-          exists = true;
+      let exists = false;
+
+      try {
+        // Kiểm tra Firestore với timeout 8 giây
+        const contactQuery = query(collection(db, 'users'), where('contact', '==', contactVal));
+        const contactSnap = await withTimeout(getDocs(contactQuery));
+        exists = !contactSnap.empty;
+
+        if (!exists) {
+          const contactRef = doc(db, 'unique_contacts', contactVal);
+          const contactDoc = await withTimeout(getDoc(contactRef));
+          exists = contactDoc.exists();
         }
+      } catch (firestoreErr: any) {
+        // Nếu Firestore timeout/lỗi → fallback sang localStorage
+        console.warn('Firestore login check failed, using localStorage fallback:', firestoreErr.message);
       }
-      
+
+      // Luôn kiểm tra localStorage dù Firestore thành công hay không
       if (!exists) {
-        // Fallback check in localStorage
         const localUserStr = localStorage.getItem('vinclub_local_user');
         if (localUserStr) {
           try {
             const localUser = JSON.parse(localUserStr);
-            if (localUser.contact === contactVal) {
-              exists = true;
-            }
+            if (localUser.contact === contactVal) exists = true;
           } catch (e) {}
         }
       }
 
       if (!exists) {
         setLoginError('Tài khoản chưa được đăng ký trong hệ thống VinClub. Vui lòng bấm Đăng ký tài khoản mới ở phía dưới.');
-        setIsLoading(false);
         return;
       }
 
       generateAndSendOtp();
       setStep('otp');
     } catch (error: any) {
-      console.error("Login check failed:", error);
-      setLoginError("Không thể xác thực thông tin đăng nhập. Vui lòng kiểm tra lại kết nối.");
+      console.error('Login check failed:', error);
+      setLoginError('Không thể kết nối máy chủ. Vui lòng kiểm tra lại đường truyền mạng và thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -281,29 +298,55 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
     try {
       const contactVal = regContact.trim();
-      const contactRef = doc(db, 'unique_contacts', contactVal);
-      const contactDoc = await getDoc(contactRef);
-      
-      if (contactDoc.exists()) {
-        setRegError('Tài khoản với số điện thoại/email này đã được đăng ký.');
-        setIsLoading(false);
-        return;
+      let alreadyExists = false;
+
+      try {
+        // Kiểm tra trùng lặp với timeout 8 giây để tránh treo
+        const contactRef = doc(db, 'unique_contacts', contactVal);
+        const [contactDoc, querySnapshot] = await Promise.all([
+          withTimeout(getDoc(contactRef)),
+          withTimeout(getDocs(query(collection(db, 'users'), where('contact', '==', contactVal)))),
+        ]);
+        alreadyExists = contactDoc.exists() || !querySnapshot.empty;
+      } catch (firestoreErr: any) {
+        if (firestoreErr.message === 'TIMEOUT') {
+          // Firestore timeout → không chặn đăng ký, cho phép tiếp tục
+          console.warn('Firestore check timed out, proceeding with registration offline...');
+        } else {
+          // Lỗi permission hoặc lỗi mạng thực sự
+          throw firestoreErr;
+        }
       }
-      
-      // Fallback check in users collection just in case
-      const q = query(collection(db, 'users'), where('contact', '==', contactVal));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setRegError('Tài khoản với số điện thoại/email này đã được đăng ký.');
-        setIsLoading(false);
+
+      // Kiểm tra trong localStorage nếu Firestore không có dữ liệu
+      if (!alreadyExists) {
+        const localUserStr = localStorage.getItem('vinclub_local_user');
+        if (localUserStr) {
+          try {
+            const localUser = JSON.parse(localUserStr);
+            if (localUser.contact === contactVal) alreadyExists = true;
+          } catch (e) {}
+        }
+      }
+
+      if (alreadyExists) {
+        setRegError('Tài khoản với số điện thoại/email này đã được đăng ký. Vui lòng đăng nhập.');
         return;
       }
 
-      setIsLoading(false);
+      // Đăng ký hợp lệ → tiếp tục
       setStep('terms');
-    } catch (err) {
-      console.error("Register check err", err);
-      setRegError('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
+    } catch (err: any) {
+      console.error('Register check err:', err);
+      // Phân biệt loại lỗi để thông báo chính xác
+      if (err?.code === 'permission-denied' || err?.code === 'PERMISSION_DENIED') {
+        setRegError('Không có quyền truy cập máy chủ. Vui lòng liên hệ hỗ trợ.');
+      } else if (err?.code === 'unavailable' || err?.message?.includes('network')) {
+        setRegError('Mất kết nối mạng. Vui lòng kiểm tra Wi-Fi/3G và thử lại.');
+      } else {
+        setRegError('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -339,35 +382,36 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       // Always store locally as fallback/quick session loader
       localStorage.setItem('vinclub_local_user', JSON.stringify(profile));
 
-      // Always try to write to Firestore users collection
+      // Ghi vào Firestore với timeout – nếu thất bại user vẫn vào được (localStorage đã lưu)
       try {
         const userRef = doc(db, 'users', uid);
         const contactRef = doc(db, 'unique_contacts', finalContact);
-        
+
         const batch = writeBatch(db);
         batch.set(userRef, {
           ...profile,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
         if (finalContact !== 'N/A') {
-          batch.set(contactRef, {
-            uid: uid,
-            createdAt: new Date()
-          });
+          batch.set(contactRef, { uid, createdAt: new Date() });
         }
-        await batch.commit();
 
-        // Send welcome notification
-        await addDoc(collection(db, 'notifications'), {
+        await withTimeout(batch.commit(), 10000);
+
+        // Gửi thông báo chào mừng
+        addDoc(collection(db, 'notifications'), {
           userId: uid,
           title: 'Chào mừng thành viên mới',
           message: `Chào mừng ${finalName} đến với VINCLUB!`,
           createdAt: new Date(),
-          isRead: false
-        });
-      } catch (dbErr) {
-        console.warn("Unable to write profile to Firestore:", dbErr);
+          isRead: false,
+        }).catch(() => {}); // Fire-and-forget, không chặn luồng chính
+      } catch (dbErr: any) {
+        // Ghi Firestore thất bại → vẫn cho vào ứng dụng vì đã lưu localStorage
+        console.warn('Không thể lưu hồ sơ lên Firestore (sẽ đồng bộ sau):', dbErr?.message);
+        // Đánh dấu cần đồng bộ lại sau
+        localStorage.setItem('vinclub_pending_sync', 'true');
       }
 
       onStart(url, finalName, uid);
